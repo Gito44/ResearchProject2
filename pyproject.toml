@@ -1,0 +1,17 @@
+[project]
+name = "semgem"
+version = "0.1.0"
+description = "Semantic layer generator for SBML genome-scale metabolic models"
+requires-python = ">=3.9"
+dependencies = [
+    "cobra",
+    "pandas",
+    "typer"
+]
+
+[project.scripts]
+semgem = "semgem.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["semgem*"]
+exclude = ["models*", "outputs*", "tests*", "docs*"]
