@@ -1,0 +1,84 @@
+[concepts.objective_reaction]
+entity_type = "reaction"
+description = "Reaction used in the model objective."
+minimum_score = 1.0
+
+[[concepts.objective_reaction.rules]]
+evidence_type = "objective_coefficient"
+target_field = "objective_coefficient"
+operator = "nonzero"
+weight = 1.0
+text = "Reaction has a nonzero objective coefficient."
+
+
+[concepts.biomass_reaction]
+entity_type = "reaction"
+description = "Reaction representing biomass production or growth objective."
+minimum_score = 0.7
+
+[[concepts.biomass_reaction.rules]]
+evidence_type = "text_match"
+target_field = "combined_text"
+operator = "contains"
+value = "biomass"
+weight = 0.5
+text = "Reaction ID, name, or equation contains 'biomass'."
+
+[[concepts.biomass_reaction.rules]]
+evidence_type = "objective_coefficient"
+target_field = "objective_coefficient"
+operator = "nonzero"
+weight = 0.4
+text = "Reaction has a nonzero objective coefficient."
+
+[[concepts.biomass_reaction.rules]]
+evidence_type = "sbo_annotation"
+target_field = "annotations.sbo"
+operator = "in"
+values = ["SBO:0000629"]
+weight = 0.6
+text = "Reaction has an SBO annotation associated with biomass production."
+
+
+[concepts.exchange_reaction]
+entity_type = "reaction"
+description = "Reaction that exchanges metabolites with the model boundary."
+minimum_score = 0.5
+
+[[concepts.exchange_reaction.rules]]
+evidence_type = "id_pattern"
+target_field = "reaction_id"
+operator = "startswith"
+value = "EX_"
+weight = 0.5
+text = "Reaction ID starts with EX_, a common exchange reaction pattern."
+
+[[concepts.exchange_reaction.rules]]
+evidence_type = "text_match"
+target_field = "combined_text"
+operator = "contains"
+value = "exchange"
+weight = 0.4
+text = "Reaction ID, name, or equation contains 'exchange'."
+
+
+[concepts.oxygen_exchange]
+entity_type = "reaction"
+description = "Exchange reaction involving oxygen."
+minimum_score = 0.8
+
+[[concepts.oxygen_exchange.rules]]
+evidence_type = "id_pattern"
+target_field = "reaction_id"
+operator = "startswith"
+value = "EX_"
+weight = 0.4
+text = "Reaction ID starts with EX_, suggesting an exchange reaction."
+
+[[concepts.oxygen_exchange.rules]]
+evidence_type = "text_match"
+target_field = "combined_text"
+operator = "contains_any"
+values = ["o2", "oxygen"]
+weight = 0.5
+text = "Reaction text contains oxygen or o2."

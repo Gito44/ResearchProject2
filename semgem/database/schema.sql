@@ -44,3 +44,22 @@ CREATE TABLE IF NOT EXISTS annotations (
     annotation_key TEXT,
     annotation_value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS semantic_concepts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model_id INTEGER,
+    concept_name TEXT,
+    entity_type TEXT,
+    entity_id TEXT,
+    confidence REAL,
+    FOREIGN KEY (model_id) REFERENCES models(id)
+);
+
+CREATE TABLE IF NOT EXISTS concept_evidence (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    concept_id INTEGER,
+    evidence_type TEXT,
+    evidence_text TEXT,
+    weight REAL,
+    FOREIGN KEY (concept_id) REFERENCES semantic_concepts(id)
+);
