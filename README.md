@@ -91,6 +91,8 @@ The same read-only operations are available from the command line:
 ```bash
 semgem models outputs/semantic_catalog.sqlite
 
+semgem search outputs/semantic_catalog.sqlite ATPM --type reaction
+
 semgem entity outputs/semantic_catalog.sqlite \
     --model iJO1366 --type reaction --id ATPM
 
@@ -104,6 +106,11 @@ semgem explain outputs/semantic_catalog.sqlite \
     --model iJO1366 --type reaction --id BIOMASS_Ec_iJO1366_core_53p95M \
     --concept objective_reaction
 ```
+
+`search` performs a case-insensitive substring search across entity IDs, names,
+annotation identifiers, and semantic concepts. Results include the matching
+field and source. Use `--model`, `--type`, `--source`, and `--limit` to narrow
+cross-model results.
 
 ## Testing
 

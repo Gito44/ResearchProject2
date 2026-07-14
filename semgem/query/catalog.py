@@ -8,6 +8,8 @@ from semgem.query.records import (
     EntitySummary,
     EvidenceResult,
     ModelSummary,
+    SearchMatch,
+    SearchResult,
 )
 
 
@@ -51,6 +53,149 @@ class SemanticCatalog:
             )
             for row in rows
         ]
+
+    def search(
+        self,
+        query: str,
+        model_id: str | None = None,
+        entity_type: str | None = None,
+        annotation_source: str | None = None,
+        limit: int = 100,
+    ) -> list[SearchResult]:
+        """Search entity IDs, names, annotations, and semantic concepts."""
+        query = query.strip()
+        if not query:
+            raise ValueError("Search query must not be empty.")
+        if entity_type is not None and entity_type not in self.ENTITY_TYPES:
+            allowed = ", ".join(sorted(self.ENTITY_TYPES))
+            raise ValueError(f"Unknown entity type '{entity_type}'. Expected: {allowed}.")
+        if limit < 1:
+            raise ValueError("Search limit must be at least 1.")
+
+        scope_conditions = []
+        scope_parameters: list[str] = []
+        if model_id is not None:
+            scope_conditions.append("m.original_id = ?")
+            scope_parameters.append(model_id)
+        if entity_type is not None:
+            scope_conditions.append("e.entity_type = ?")
+            scope_parameters.append(entity_type)
+
+        scope_where = ""
+        if scope_conditions:
+            scope_where = "WHERE " + " AND ".join(scope_conditions)
+
+        escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped.lower()}%"
+
+        match_queries = []
+        match_parameters: list[str] = []
+        if annotation_source is None:
+            match_queries.extend(
+                [
+                    """
+                    SELECT internal_id, 'id' AS match_field, NULL AS match_source,
+                           original_id AS matched_value
+                    FROM scoped
+                    WHERE LOWER(original_id) LIKE ? ESCAPE '\\'
+                    """,
+                    """
+                    SELECT internal_id, 'name' AS match_field, NULL AS match_source,
+                           name AS matched_value
+                    FROM scoped
+                    WHERE name IS NOT NULL
+                      AND LOWER(name) LIKE ? ESCAPE '\\'
+                    """,
+                    """
+                    SELECT s.internal_id, 'annotation' AS match_field,
+                           a.source AS match_source, a.identifier AS matched_value
+                    FROM scoped AS s
+                    JOIN annotations AS a ON a.entity_id = s.internal_id
+                    WHERE LOWER(a.identifier) LIKE ? ESCAPE '\\'
+                    """,
+                    """
+                    SELECT s.internal_id, 'concept' AS match_field,
+                           NULL AS match_source, c.concept_name AS matched_value
+                    FROM scoped AS s
+                    JOIN semantic_concepts AS c ON c.entity_id = s.internal_id
+                    WHERE LOWER(c.concept_name) LIKE ? ESCAPE '\\'
+                    """,
+                ]
+            )
+            match_parameters.extend([pattern, pattern, pattern, pattern])
+        else:
+            match_queries.append(
+                """
+                SELECT s.internal_id, 'annotation' AS match_field,
+                       a.source AS match_source, a.identifier AS matched_value
+                FROM scoped AS s
+                JOIN annotations AS a ON a.entity_id = s.internal_id
+                WHERE a.source = ?
+                  AND LOWER(a.identifier) LIKE ? ESCAPE '\\'
+                """
+            )
+            match_parameters.extend([annotation_source, pattern])
+
+        match_sql = " UNION ALL ".join(match_queries)
+        rows = self.conn.execute(
+            f"""
+            WITH scoped AS (
+                SELECT e.id AS internal_id,
+                       m.original_id AS model_id,
+                       e.entity_type,
+                       e.original_id,
+                       e.name
+                FROM entities AS e
+                JOIN models AS m ON m.id = e.model_id
+                {scope_where}
+            ),
+            match_data AS (
+                {match_sql}
+            ),
+            selected_entities AS (
+                SELECT s.internal_id
+                FROM scoped AS s
+                JOIN match_data AS md ON md.internal_id = s.internal_id
+                GROUP BY s.internal_id
+                ORDER BY s.model_id, s.entity_type, s.original_id
+                LIMIT ?
+            )
+            SELECT s.internal_id, s.model_id, s.entity_type, s.original_id, s.name,
+                   md.match_field, md.match_source, md.matched_value
+            FROM selected_entities AS selected
+            JOIN scoped AS s ON s.internal_id = selected.internal_id
+            JOIN match_data AS md ON md.internal_id = selected.internal_id
+            ORDER BY s.model_id, s.entity_type, s.original_id,
+                     md.match_field, md.match_source, md.matched_value
+            """,
+            [*scope_parameters, *match_parameters, limit],
+        ).fetchall()
+
+        grouped: dict[int, SearchResult] = {}
+        for row in rows:
+            match = SearchMatch(
+                field=row["match_field"],
+                source=row["match_source"],
+                value=row["matched_value"],
+            )
+            if row["internal_id"] not in grouped:
+                grouped[row["internal_id"]] = SearchResult(
+                    entity=EntitySummary(
+                        internal_id=row["internal_id"],
+                        model_id=row["model_id"],
+                        entity_type=row["entity_type"],
+                        original_id=row["original_id"],
+                        name=row["name"],
+                    ),
+                    matches=(match,),
+                )
+            else:
+                result = grouped[row["internal_id"]]
+                grouped[row["internal_id"]] = SearchResult(
+                    entity=result.entity,
+                    matches=(*result.matches, match),
+                )
+        return list(grouped.values())
 
     def get_entity(
         self,

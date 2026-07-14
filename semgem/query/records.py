@@ -45,3 +45,16 @@ class ConceptExplanation:
     name: str
     confidence: float
     evidence: tuple[EvidenceResult, ...]
+
+
+@dataclass(frozen=True)
+class SearchMatch:
+    field: str
+    value: str
+    source: str | None = None
+
+
+@dataclass(frozen=True)
+class SearchResult:
+    entity: EntitySummary
+    matches: tuple[SearchMatch, ...]

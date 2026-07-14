@@ -208,6 +208,65 @@ def models(catalog_path: Path = catalog_argument()):
 
 
 @app.command()
+def search(
+    catalog_path: Path = catalog_argument(),
+    query: str = typer.Argument(..., help="Text to search for."),
+    model_id: str | None = typer.Option(
+        None, "--model", "-m", help="Limit results to one SBML model ID."
+    ),
+    entity_type: str | None = typer.Option(
+        None,
+        "--type",
+        "-t",
+        help="Limit results to reactions, metabolites, or genes.",
+    ),
+    annotation_source: str | None = typer.Option(
+        None,
+        "--source",
+        "-s",
+        help="Search only identifiers from this annotation source.",
+    ),
+    limit: int = typer.Option(
+        100,
+        "--limit",
+        "-n",
+        min=1,
+        help="Maximum number of matching entities.",
+    ),
+):
+    """Search entities across one or many models."""
+    try:
+        with SemanticCatalog(catalog_path) as catalog:
+            results = catalog.search(
+                query=query,
+                model_id=model_id,
+                entity_type=entity_type,
+                annotation_source=annotation_source,
+                limit=limit,
+            )
+    except ValueError as error:
+        query_error(error)
+
+    if not results:
+        typer.echo("No matches found.")
+        return
+
+    for result in results:
+        entity = result.entity
+        matches = []
+        for match in result.matches:
+            field = match.field
+            if match.source is not None:
+                field = f"{field}[{match.source}]"
+            matches.append(f"{field}={match.value}")
+        typer.echo(
+            f"{entity.model_id}\t{entity.entity_type}\t"
+            f"{entity.original_id}\t{entity.name or ''}\t"
+            f"matches: {', '.join(matches)}"
+        )
+
+
+@app.command()
 def entity(
     catalog_path: Path = catalog_argument(),
     model_id: str = query_options()["model_id"],

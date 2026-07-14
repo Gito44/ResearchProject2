@@ -10,6 +10,8 @@ from semgem.query.records import (
     EntitySummary,
     EvidenceResult,
     ModelSummary,
+    SearchMatch,
+    SearchResult,
 )
 
 __all__ = [
@@ -21,5 +23,7 @@ __all__ = [
     "EntitySummary",
     "EvidenceResult",
     "ModelSummary",
+    "SearchMatch",
+    "SearchResult",
     "SemanticCatalog",
 ]

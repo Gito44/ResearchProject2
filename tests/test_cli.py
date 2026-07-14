@@ -188,3 +188,22 @@ def test_query_command_reports_missing_entity(cli_catalog):
 
     assert result.exit_code == 1
     assert "Entity not found" in result.output
+
+
+def test_search_command_finds_and_describes_matches(cli_catalog):
+    result = CliRunner().invoke(
+        app,
+        [
+            "search",
+            str(cli_catalog),
+            "R00001",
+            "--type",
+            "reaction",
+            "--source",
+            "kegg.reaction",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "test_model\treaction\tBIOMASS_TEST" in result.output
+    assert "annotation[kegg.reaction]=R00001" in result.output

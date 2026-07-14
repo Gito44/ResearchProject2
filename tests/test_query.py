@@ -143,3 +143,50 @@ def test_catalog_does_not_create_a_missing_database(tmp_path):
         SemanticCatalog(missing)
 
     assert not missing.exists()
+
+
+def test_search_finds_same_entity_id_across_models(catalog_path):
+    with SemanticCatalog(catalog_path) as catalog:
+        results = catalog.search("biomass_test", entity_type="reaction")
+
+    assert [result.entity.model_id for result in results] == [
+        "second_model",
+        "test_model",
+    ]
+    assert all(result.matches[0].field == "id" for result in results)
+
+
+def test_search_matches_names_annotations_and_concepts(catalog_path):
+    with SemanticCatalog(catalog_path) as catalog:
+        name_results = catalog.search("second model biomass")
+        annotation_results = catalog.search("R00001")
+        concept_results = catalog.search("objective_reaction")
+
+    assert [result.entity.model_id for result in name_results] == ["second_model"]
+    assert name_results[0].matches[0].field == "name"
+    assert len(annotation_results) == 2
+    assert annotation_results[0].matches[0].source == "kegg.reaction"
+    assert len(concept_results) == 2
+    assert concept_results[0].matches[0].field == "concept"
+
+
+def test_search_filters_model_annotation_source_and_limit(catalog_path):
+    with SemanticCatalog(catalog_path) as catalog:
+        filtered = catalog.search(
+            "R00001",
+            model_id="test_model",
+            annotation_source="kegg.reaction",
+        )
+        limited = catalog.search("biomass", limit=1)
+
+    assert len(filtered) == 1
+    assert filtered[0].entity.model_id == "test_model"
+    assert filtered[0].matches[0].source == "kegg.reaction"
+    assert len(limited) == 1
+
+
+def test_search_treats_sql_wildcards_as_literal_text(catalog_path):
+    with SemanticCatalog(catalog_path) as catalog:
+        results = catalog.search("%_")
+
+    assert results == []
