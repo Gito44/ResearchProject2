@@ -12,13 +12,16 @@ The current version can:
 - extract reactions, metabolites, genes, stoichiometry, and gene associations;
 - preserve existing model annotations as individually queryable identifiers;
 - store multiple models in one relational SQLite catalog;
+- query models, scoped entities, annotations, concepts, and supporting evidence
+  through a read-only Python API;
 - assign configurable reaction-level semantic concepts using TOML evidence rules;
 - record confidence, evidence fields, matched values, and evidence weights;
 - detect exact duplicate models and model-identity conflicts;
 - import each model atomically; and
 - remove dependent model data through foreign-key cascades.
 
-The package currently builds the semantic database. A public query API, JSON export, and external pathway enrichment are planned but not yet implemented.
+The package currently builds and queries the semantic database. JSON export and
+external pathway enrichment are planned but not yet implemented.
 
 ## Installation
 
@@ -52,7 +55,55 @@ semgem build path/to/model_a.xml path/to/model_b.xml \
 Single-model commands remain supported. A later command can also extend the same
 catalog by importing another model.
 
+A directory can be imported recursively, which is more convenient for larger
+model collections:
+
+```bash
+semgem build path/to/models/ --out outputs/semantic_catalog.sqlite
+```
+
+Directory discovery accepts `.xml`, `.xml.gz`, `.sbml`, and `.sbml.gz` files,
+ignores unrelated files, sorts the discovered paths, and avoids importing the
+same file twice when inputs overlap. Files and directories can be mixed in the
+same command.
+
 SemGEM rejects an exact duplicate model. It also rejects reuse of an existing SBML model ID with different file content. Differently identified models with identical hashes are allowed with a warning.
+
+## Querying a semantic catalog
+
+```python
+from semgem.query import SemanticCatalog
+
+with SemanticCatalog("outputs/semantic_catalog.sqlite") as catalog:
+    models = catalog.list_models()
+    reaction = catalog.get_entity("iJO1366", "reaction", "ATPM")
+    annotations = catalog.get_annotations("iJO1366", "reaction", "ATPM")
+    concepts = catalog.get_concepts("iJO1366", "reaction", "ATPM")
+```
+
+Entity queries always include the model ID because different models may reuse
+the same reaction, metabolite, or gene identifier. `explain_concept()` returns
+the evidence fields, matched values, explanations, and weights supporting an
+assignment. The query connection is read-only.
+
+The same read-only operations are available from the command line:
+
+```bash
+semgem models outputs/semantic_catalog.sqlite
+
+semgem entity outputs/semantic_catalog.sqlite \
+    --model iJO1366 --type reaction --id ATPM
+
+semgem annotations outputs/semantic_catalog.sqlite \
+    --model iJO1366 --type reaction --id ATPM
+
+semgem concepts outputs/semantic_catalog.sqlite \
+    --model iJO1366 --type reaction --id ATPM
+
+semgem explain outputs/semantic_catalog.sqlite \
+    --model iJO1366 --type reaction --id BIOMASS_Ec_iJO1366_core_53p95M \
+    --concept objective_reaction
+```
 
 ## Testing
 
@@ -107,13 +158,14 @@ Its intended contribution is a consistent, evidence-preserving interface over he
 - [Database schema](docs/database-schema.md)
 - [Future work](docs/future_work.md)
 - [Living TODO list](docs/todo.md)
+- [External data-source contact plan](docs/data-source-contacts.md)
 
 ## Current limitations
 
 - Only initial reaction-level concepts are classified.
 - Confidence scores use simple additive rule weights and are not calibrated probabilities.
 - KEGG, SBO, MetaNetX, and other external enrichment workflows are not yet implemented beyond annotations already present in source models.
-- Query commands and a public Python query interface are not yet implemented.
+- General text search and pathway-level queries are not yet implemented.
 - The current SQLite schema is regenerated during development; schema migrations are not supported.
 - Databases generated with the earlier prototype schema must be rebuilt from their source model files.
 - External resource licensing and redistribution requirements must be considered before publishing enriched datasets.

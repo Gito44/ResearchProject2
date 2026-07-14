@@ -11,8 +11,52 @@ from semgem.database.sqlite import (
 )
 from semgem.evidence.engine import EvidenceEngine
 from semgem.evidence.load_rules import load_concept_definitions
+from semgem.query import (
+    ConceptNotFoundError,
+    EntityNotFoundError,
+    SemanticCatalog,
+)
 
 app = typer.Typer()
+SUPPORTED_MODEL_SUFFIXES = (".xml", ".xml.gz", ".sbml", ".sbml.gz")
+
+
+def is_supported_model_file(path: Path) -> bool:
+    """Return whether a path has a supported SBML filename suffix."""
+    name = path.name.lower()
+    return path.is_file() and any(
+        name.endswith(suffix) for suffix in SUPPORTED_MODEL_SUFFIXES
+    )
+
+
+def discover_model_paths(input_paths: list[Path]) -> list[Path]:
+    """Expand files and directories into unique, deterministically ordered models."""
+    discovered: dict[Path, Path] = {}
+
+    for input_path in input_paths:
+        if input_path.is_dir():
+            candidates = (
+                path for path in input_path.rglob("*") if is_supported_model_file(path)
+            )
+        elif is_supported_model_file(input_path):
+            candidates = (input_path,)
+        else:
+            supported = ", ".join(SUPPORTED_MODEL_SUFFIXES)
+            raise typer.BadParameter(
+                f"Unsupported model file '{input_path}'. Expected: {supported}."
+            )
+
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            discovered.setdefault(resolved, candidate)
+
+    if not discovered:
+        supported = ", ".join(SUPPORTED_MODEL_SUFFIXES)
+        raise typer.BadParameter(
+            f"No supported SBML model files were found. Expected: {supported}."
+        )
+
+    return [discovered[path] for path in sorted(discovered, key=str)]
 
 
 def import_model(
@@ -53,6 +97,39 @@ def import_model(
         "semantic_concepts": len(semantic_concepts),
     }
 
+
+def catalog_argument() -> typer.Argument:
+    return typer.Argument(
+        ...,
+        help="SemGEM SQLite catalog to query.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    )
+
+
+def query_options():
+    return {
+        "model_id": typer.Option(..., "--model", "-m", help="SBML model ID."),
+        "entity_type": typer.Option(
+            ...,
+            "--type",
+            "-t",
+            help="Entity type: reaction, metabolite, or gene.",
+        ),
+        "entity_id": typer.Option(
+            ...,
+            "--id",
+            help="Original entity identifier within the model.",
+        ),
+    }
+
+
+def query_error(error: Exception) -> None:
+    typer.echo(f"Error: {error}", err=True)
+    raise typer.Exit(code=1) from error
+
 @app.callback()
 def main():
     """
@@ -64,10 +141,10 @@ def main():
 def build(
     model_paths: list[Path] = typer.Argument(
         ...,
-        help="One or more SBML model files to import into the catalog.",
+        help="One or more SBML files or directories to import into the catalog.",
         exists=True,
         file_okay=True,
-        dir_okay=False,
+        dir_okay=True,
         readable=True,
     ),
     out: Path = typer.Option(
@@ -84,12 +161,13 @@ def build(
     concept_definitions = load_concept_definitions(rules_path)
     evidence_engine = EvidenceEngine(concept_definitions)
     schema_path = Path(__file__).parent / "database" / "schema.sql"
+    discovered_models = discover_model_paths(model_paths)
     imported = []
 
     try:
         with SemanticDatabase(out, schema_path) as database:
             database.initialise()
-            for model_path in model_paths:
+            for model_path in discovered_models:
                 counts = import_model(model_path, database, evidence_engine)
                 imported.append((model_path, counts))
     except (
@@ -112,3 +190,120 @@ def build(
         typer.echo(f"  Reaction-gene links: {counts['reaction_genes']}")
         typer.echo(f"  Semantic concepts: {counts['semantic_concepts']}")
     typer.echo(f"Models imported: {len(imported)}")
+
+
+@app.command()
+def models(catalog_path: Path = catalog_argument()):
+    """List models stored in a semantic catalog."""
+    with SemanticCatalog(catalog_path) as catalog:
+        stored_models = catalog.list_models()
+
+    if not stored_models:
+        typer.echo("No models found.")
+        return
+
+    for model in stored_models:
+        name = model.name or ""
+        typer.echo(f"{model.original_id}\t{name}")
+
+
+@app.command()
+def entity(
+    catalog_path: Path = catalog_argument(),
+    model_id: str = query_options()["model_id"],
+    entity_type: str = query_options()["entity_type"],
+    entity_id: str = query_options()["entity_id"],
+):
+    """Show one model entity."""
+    try:
+        with SemanticCatalog(catalog_path) as catalog:
+            result = catalog.get_entity(model_id, entity_type, entity_id)
+    except (EntityNotFoundError, ValueError) as error:
+        query_error(error)
+
+    typer.echo(f"internal_id\t{result.internal_id}")
+    typer.echo(f"model\t{result.model_id}")
+    typer.echo(f"type\t{result.entity_type}")
+    typer.echo(f"id\t{result.original_id}")
+    typer.echo(f"name\t{result.name or ''}")
+
+
+@app.command()
+def annotations(
+    catalog_path: Path = catalog_argument(),
+    model_id: str = query_options()["model_id"],
+    entity_type: str = query_options()["entity_type"],
+    entity_id: str = query_options()["entity_id"],
+):
+    """List annotations attached to one model entity."""
+    try:
+        with SemanticCatalog(catalog_path) as catalog:
+            results = catalog.get_annotations(model_id, entity_type, entity_id)
+    except (EntityNotFoundError, ValueError) as error:
+        query_error(error)
+
+    if not results:
+        typer.echo("No annotations found.")
+        return
+
+    for result in results:
+        typer.echo(f"{result.source}\t{result.identifier}")
+
+
+@app.command()
+def concepts(
+    catalog_path: Path = catalog_argument(),
+    model_id: str = query_options()["model_id"],
+    entity_type: str = query_options()["entity_type"],
+    entity_id: str = query_options()["entity_id"],
+):
+    """List semantic concepts assigned to one model entity."""
+    try:
+        with SemanticCatalog(catalog_path) as catalog:
+            results = catalog.get_concepts(model_id, entity_type, entity_id)
+    except (EntityNotFoundError, ValueError) as error:
+        query_error(error)
+
+    if not results:
+        typer.echo("No semantic concepts found.")
+        return
+
+    for result in results:
+        typer.echo(f"{result.name}\tconfidence={result.confidence:.3f}")
+
+
+@app.command()
+def explain(
+    catalog_path: Path = catalog_argument(),
+    model_id: str = query_options()["model_id"],
+    entity_type: str = query_options()["entity_type"],
+    entity_id: str = query_options()["entity_id"],
+    concept_name: str = typer.Option(
+        ...,
+        "--concept",
+        "-c",
+        help="Semantic concept to explain.",
+    ),
+):
+    """Explain the evidence supporting one semantic concept assignment."""
+    try:
+        with SemanticCatalog(catalog_path) as catalog:
+            result = catalog.explain_concept(
+                model_id,
+                entity_type,
+                entity_id,
+                concept_name,
+            )
+    except (ConceptNotFoundError, EntityNotFoundError, ValueError) as error:
+        query_error(error)
+
+    typer.echo(f"{result.name}\tconfidence={result.confidence:.3f}")
+    for evidence in result.evidence:
+        matched = evidence.matched_value or ""
+        typer.echo(
+            f"{evidence.evidence_type}\t"
+            f"field={evidence.target_field}\t"
+            f"matched={matched}\t"
+            f"weight={evidence.weight:.3f}\t"
+            f"{evidence.text}"
+        )
