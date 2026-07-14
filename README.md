@@ -42,11 +42,15 @@ python -m pip install -e ".[dev]"
 semgem build path/to/model.xml --out outputs/semantic_catalog.sqlite
 ```
 
-The same database can contain multiple models:
+One command can import multiple models into the same catalog:
 
 ```bash
-semgem build path/to/another_model.xml --out outputs/semantic_catalog.sqlite
+semgem build path/to/model_a.xml path/to/model_b.xml \
+    --out outputs/semantic_catalog.sqlite
 ```
+
+Single-model commands remain supported. A later command can also extend the same
+catalog by importing another model.
 
 SemGEM rejects an exact duplicate model. It also rejects reuse of an existing SBML model ID with different file content. Differently identified models with identical hashes are allowed with a warning.
 
