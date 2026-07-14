@@ -1,4 +1,18 @@
-/semgem.egg-info/
-/outputs/
-/.venv/
-/identifier.sqlite
+.venv/
+.idea/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+outputs/
+*.sqlite
+.DS_Store
+
+# Large local model files are not committed. Test fixtures should be small and
+# placed under tests/fixtures when needed.
+models/*.xml
+models/*.xml.gz
+models/*.json
+models/*.json.gz

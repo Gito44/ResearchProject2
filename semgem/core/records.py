@@ -30,3 +30,16 @@ class StoichiometryRecord:
     reaction_id: str
     metabolite_id: str
     coefficient: float
+
+
+@dataclass
+class GeneRecord:
+    gene_id: str
+    name: str
+    annotations: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ReactionGeneRecord:
+    reaction_id: str
+    gene_id: str

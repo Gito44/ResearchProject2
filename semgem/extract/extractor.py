@@ -1,9 +1,15 @@
-from semgem.core.records import MetaboliteRecord, ReactionRecord, StoichiometryRecord
+from semgem.core.records import (
+    GeneRecord,
+    MetaboliteRecord,
+    ReactionGeneRecord,
+    ReactionRecord,
+    StoichiometryRecord,
+)
 
 
 class Extractor:
 
-    def __init__(self,model):
+    def __init__(self, model):
         self.model = model
 
     def extract_metabolites(self) -> list[MetaboliteRecord]:
@@ -16,6 +22,20 @@ class Extractor:
                     formula=metabolite.formula,
                     charge=metabolite.charge,
                     annotations=dict(metabolite.annotation) if metabolite.annotation else {}))
+
+        return records
+
+    def extract_genes(self) -> list[GeneRecord]:
+        records = []
+
+        for gene in self.model.genes:
+            records.append(
+                GeneRecord(
+                    gene_id=gene.id,
+                    name=gene.name,
+                    annotations=dict(gene.annotation) if gene.annotation else {},
+                )
+            )
 
         return records
 
@@ -36,6 +56,20 @@ class Extractor:
                     annotations=dict(reaction.annotation) if reaction.annotation else {},
                 )
             )
+
+        return records
+
+    def extract_reaction_genes(self) -> list[ReactionGeneRecord]:
+        records = []
+
+        for reaction in self.model.reactions:
+            for gene in reaction.genes:
+                records.append(
+                    ReactionGeneRecord(
+                        reaction_id=reaction.id,
+                        gene_id=gene.id,
+                    )
+                )
 
         return records
 

@@ -24,6 +24,8 @@ class ConceptDefinition:
 @dataclass
 class EvidenceMatch:
     evidence_type: str
+    target_field: str
+    matched_value: str | None
     evidence_text: str
     weight: float
 

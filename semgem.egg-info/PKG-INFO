@@ -1,8 +1,0 @@
-Metadata-Version: 2.4
-Name: semgem
-Version: 0.2.0
-Summary: Semantic layer generator for SBML genome-scale metabolic models
-Requires-Python: >=3.11
-Requires-Dist: cobra
-Requires-Dist: pandas
-Requires-Dist: typer

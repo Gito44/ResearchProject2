@@ -1,3 +1,0 @@
-cobra
-pandas
-typer

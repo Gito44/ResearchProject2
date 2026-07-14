@@ -23,10 +23,13 @@ class EvidenceEngine:
                 matched_evidence = []
 
                 for rule in concept_definition.rules:
-                    if self._rule_matches(rule, reaction):
+                    matched, matched_value = self._evaluate_rule(rule, reaction)
+                    if matched:
                         matched_evidence.append(
                             EvidenceMatch(
                                 evidence_type=rule.evidence_type,
+                                target_field=rule.target_field,
+                                matched_value=matched_value,
                                 evidence_text=rule.text,
                                 weight=rule.weight,
                             )
@@ -48,39 +51,46 @@ class EvidenceEngine:
 
         return concepts
 
-    def _rule_matches(self, rule: EvidenceRule, entity) -> bool:
+    def _evaluate_rule(self, rule: EvidenceRule, entity) -> tuple[bool, str | None]:
         value = self._get_field_value(entity, rule.target_field)
 
         if rule.operator == "nonzero":
-            return value is not None and float(value) != 0.0
+            matched = value is not None and float(value) != 0.0
+            return matched, str(value) if matched else None
 
         if rule.operator == "contains":
             if value is None:
-                return False
-            return str(rule.value).lower() in str(value).lower()
+                return False, None
+            matched = str(rule.value).lower() in str(value).lower()
+            return matched, str(rule.value) if matched else None
 
         if rule.operator == "contains_any":
             if value is None:
-                return False
+                return False, None
             text = str(value).lower()
-            return any(str(v).lower() in text for v in rule.values)
+            matches = [str(v) for v in rule.values if str(v).lower() in text]
+            return bool(matches), ", ".join(matches) if matches else None
 
         if rule.operator == "equals":
-            return value == rule.value
+            matched = value == rule.value
+            return matched, str(value) if matched else None
 
         if rule.operator == "startswith":
             if value is None:
-                return False
-            return str(value).startswith(str(rule.value))
+                return False, None
+            matched = str(value).startswith(str(rule.value))
+            return matched, str(rule.value) if matched else None
 
         if rule.operator == "in":
             if value is None:
-                return False
+                return False, None
 
             if isinstance(value, list):
-                return any(v in rule.values for v in value)
+                matches = [str(v) for v in value if v in rule.values]
+                return bool(matches), ", ".join(matches) if matches else None
 
-            return value in rule.values
+            matched = value in rule.values
+            return matched, str(value) if matched else None
 
         raise ValueError(f"Unknown rule operator: {rule.operator}")
 
