@@ -6,6 +6,8 @@ This is a living list of work that has been intentionally postponed. Add items h
 
 - [ ] Review and send the enquiries in `docs/data-source-contacts.md`.
 - [ ] Record replies and any conditions in the response table.
+- [x] Record the KEGG correspondence and define the current academic,
+  local-use decision.
 - [ ] Convert confirmed conditions into source-specific attribution, caching,
   provenance and redistribution requirements before enrichment is released.
 
@@ -31,6 +33,18 @@ This is a living list of work that has been intentionally postponed. Add items h
 
 ## Deferred semantic and enrichment work
 
+- [x] Implement the configurable evidence-engine foundation.
+- [x] Implement shared external-term, relationship-provenance, and
+  enrichment-run storage.
+- [ ] Review the normalized dynamic-evidence contract before implementing
+  provider evidence generation.
+- [ ] Review evidence weighting and confidence calculation before replacing the
+  current prototype scoring behavior.
+- [ ] Complete the biological concept rule set after external enrichment data
+  and provenance are available.
+- [ ] Implement SBO enrichment as a required v1 provider.
+- [ ] Implement optional KEGG REST enrichment as a required v1 provider.
+- [ ] Evaluate MetaNetX enrichment as a v1 stretch goal.
 - [ ] Add CLI annotation filtering by source, for example
   `semgem annotations ... --source kegg.reaction`, to keep heavily annotated
   entities readable.
@@ -43,6 +57,18 @@ This is a living list of work that has been intentionally postponed. Add items h
 - [ ] Add negative and conflicting evidence.
 - [ ] Investigate annotation suggestions and optional export of proposed SBML Groups.
 
+## Thesis evaluation
+
+- [ ] Compare the same model set under different semantic evidence modes:
+  model-only, default redistributable enrichment, and default enrichment plus
+  KEGG.
+- [ ] Measure and compare reaction/pathway coverage, agreement between sources,
+  false positives, false negatives, unresolved entities, and enrichment runtime.
+- [ ] Report cases where KEGG adds useful classifications, changes an existing
+  classification, or disagrees with model-local or other external evidence.
+- [ ] Evaluate whether the additional KEGG coverage justifies its network,
+  runtime, licensing, and reproducibility trade-offs.
+
 ## Deferred knowledgebase and application work
 
 - [ ] Build a large multi-model knowledgebase after the package and schema have been evaluated on a controlled model set.
@@ -51,6 +77,13 @@ This is a living list of work that has been intentionally postponed. Add items h
 - [ ] Add a REST, GraphQL, or SPARQL service if non-Python applications need remote access.
 - [ ] Integrate the semantic catalog with the original FBA web application.
 - [ ] Add pathway and evidence visualizations.
+
+## Post-v1 provider investigation
+
+- [ ] Evaluate whether BiGG and Escher maps provide sufficiently reliable,
+  redistributable pathway evidence to justify dedicated providers.
+- [ ] Evaluate Rhea as an additional curated reaction-identity provider after
+  the SBO/KEGG v1 workflow is complete.
 
 ## Deployment and licensing
 

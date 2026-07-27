@@ -163,6 +163,7 @@ Its intended contribution is a consistent, evidence-preserving interface over he
 
 - [Project reasoning and preliminary findings](docs/project_reasoning.md)
 - [Database schema](docs/database-schema.md)
+- [External enrichment design](docs/enrichment-design.md)
 - [Future work](docs/future_work.md)
 - [Living TODO list](docs/todo.md)
 - [External data-source contact plan](docs/data-source-contacts.md)
@@ -172,7 +173,7 @@ Its intended contribution is a consistent, evidence-preserving interface over he
 - Only initial reaction-level concepts are classified.
 - Confidence scores use simple additive rule weights and are not calibrated probabilities.
 - KEGG, SBO, MetaNetX, and other external enrichment workflows are not yet implemented beyond annotations already present in source models.
-- General text search and pathway-level queries are not yet implemented.
+- Pathway-level enrichment and pathway queries are not yet implemented.
 - The current SQLite schema is regenerated during development; schema migrations are not supported.
 - Databases generated with the earlier prototype schema must be rebuilt from their source model files.
 - External resource licensing and redistribution requirements must be considered before publishing enriched datasets.

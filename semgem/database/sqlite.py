@@ -4,6 +4,13 @@ import warnings
 from pathlib import Path
 from typing import Any, Iterable
 
+from semgem.core.records import (
+    EnrichmentAssertionRecord,
+    ExternalTermRecord,
+    ExternalTermRelationshipRecord,
+    ProviderRelationshipEvidenceRecord,
+)
+
 
 class DuplicateModelError(ValueError):
     """Raised when the same model ID and file content are already stored."""
@@ -366,6 +373,308 @@ class SemanticDatabase:
                         evidence.weight,
                     ),
                 )
+
+    def store_enrichment(
+        self,
+        terms: Iterable[ExternalTermRecord],
+        relationships: Iterable[ExternalTermRelationshipRecord],
+        assertions: Iterable[EnrichmentAssertionRecord],
+    ) -> None:
+        """Store one provider's enrichment records atomically."""
+        try:
+            with self.conn:
+                for term in terms:
+                    self._upsert_external_term(term)
+                for relationship in relationships:
+                    self._insert_external_term_relationship(relationship)
+                for assertion in assertions:
+                    self._insert_enrichment_assertion(assertion)
+        except Exception:
+            self.conn.rollback()
+            raise
+
+    def _upsert_external_term(self, term: ExternalTermRecord) -> int:
+        self.conn.execute(
+            """
+            INSERT INTO external_terms (
+                source,
+                identifier,
+                term_type,
+                name,
+                description,
+                source_version,
+                is_obsolete
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (source, identifier) DO UPDATE SET
+                term_type = excluded.term_type,
+                name = COALESCE(excluded.name, external_terms.name),
+                description = COALESCE(
+                    excluded.description,
+                    external_terms.description
+                ),
+                source_version = COALESCE(
+                    excluded.source_version,
+                    external_terms.source_version
+                ),
+                is_obsolete = excluded.is_obsolete
+            """,
+            (
+                term.source,
+                term.identifier,
+                term.term_type,
+                term.name,
+                term.description,
+                term.source_version,
+                int(term.is_obsolete),
+            ),
+        )
+        return self._external_term_id(term.source, term.identifier)
+
+    def _external_term_id(self, source: str, identifier: str) -> int:
+        row = self.conn.execute(
+            """
+            SELECT id
+            FROM external_terms
+            WHERE source = ? AND identifier = ?
+            """,
+            (source, identifier),
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"External term '{source}:{identifier}' is not stored.")
+        return row[0]
+
+    def _insert_external_term_relationship(
+        self,
+        relationship: ExternalTermRelationshipRecord,
+    ) -> int:
+        subject_id = self._external_term_id(
+            relationship.subject_source,
+            relationship.subject_identifier,
+        )
+        object_id = self._external_term_id(
+            relationship.object_source,
+            relationship.object_identifier,
+        )
+        self.conn.execute(
+            """
+            INSERT OR IGNORE INTO external_term_relationships (
+                subject_term_id,
+                predicate,
+                object_term_id
+            )
+            VALUES (?, ?, ?)
+            """,
+            (subject_id, relationship.predicate, object_id),
+        )
+        relationship_id = self.conn.execute(
+            """
+            SELECT id
+            FROM external_term_relationships
+            WHERE subject_term_id = ?
+              AND predicate = ?
+              AND object_term_id = ?
+            """,
+            (subject_id, relationship.predicate, object_id),
+        ).fetchone()[0]
+        self._replace_provider_relationship_evidence(
+            relationship_id,
+            relationship.evidence,
+        )
+        return relationship_id
+
+    def _replace_provider_relationship_evidence(
+        self,
+        relationship_id: int,
+        evidence_records: Iterable[ProviderRelationshipEvidenceRecord],
+    ) -> None:
+        records = tuple(evidence_records)
+        providers = {evidence.provider for evidence in records}
+        for provider in providers:
+            self.conn.execute(
+                """
+                DELETE FROM provider_relationship_evidence
+                WHERE relationship_id = ? AND provider = ?
+                """,
+                (relationship_id, provider),
+            )
+
+        for evidence in records:
+            self.conn.execute(
+                """
+                INSERT INTO provider_relationship_evidence (
+                    relationship_id,
+                    run_id,
+                    provider,
+                    retrieval_method,
+                    source_identifier,
+                    resource_version,
+                    retrieved_at,
+                    details
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    relationship_id,
+                    evidence.run_id,
+                    evidence.provider,
+                    evidence.retrieval_method,
+                    evidence.source_identifier,
+                    evidence.resource_version,
+                    evidence.retrieved_at,
+                    evidence.details,
+                ),
+            )
+
+    def _insert_enrichment_assertion(
+        self,
+        assertion: EnrichmentAssertionRecord,
+    ) -> None:
+        if self.conn.execute(
+            "SELECT 1 FROM entities WHERE id = ?",
+            (assertion.entity_id,),
+        ).fetchone() is None:
+            raise ValueError(f"Entity {assertion.entity_id} is not stored.")
+
+        term_id = self._external_term_id(
+            assertion.term_source,
+            assertion.term_identifier,
+        )
+        self.conn.execute(
+            """
+            INSERT OR IGNORE INTO enrichment_assertions (
+                entity_id,
+                predicate,
+                external_term_id
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                assertion.entity_id,
+                assertion.predicate,
+                term_id,
+            ),
+        )
+        assertion_id = self.conn.execute(
+            """
+            SELECT id
+            FROM enrichment_assertions
+            WHERE entity_id = ?
+              AND predicate = ?
+              AND external_term_id = ?
+            """,
+            (
+                assertion.entity_id,
+                assertion.predicate,
+                term_id,
+            ),
+        ).fetchone()[0]
+
+        # Re-running a provider refreshes only that provider's provenance.
+        # Evidence supplied by other providers must remain available for
+        # corroboration and later scoring.
+        providers = {evidence.provider for evidence in assertion.evidence}
+        for provider in providers:
+            self.conn.execute(
+                """
+                DELETE FROM entity_assertion_evidence
+                WHERE assertion_id = ? AND provider = ?
+                """,
+                (assertion_id, provider),
+            )
+        for evidence in assertion.evidence:
+            self.conn.execute(
+                """
+                INSERT INTO entity_assertion_evidence (
+                    assertion_id,
+                    relationship_id,
+                    run_id,
+                    provider,
+                    evidence_type,
+                    source_annotation_id,
+                    source_identifier,
+                    retrieval_method,
+                    resource_version,
+                    retrieved_at,
+                    details
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    assertion_id,
+                    evidence.relationship_id,
+                    evidence.run_id,
+                    evidence.provider,
+                    evidence.evidence_type,
+                    evidence.source_annotation_id,
+                    evidence.source_identifier,
+                    evidence.retrieval_method,
+                    evidence.resource_version,
+                    evidence.retrieved_at,
+                    evidence.details,
+                ),
+            )
+
+    def start_enrichment_run(
+        self,
+        provider: str,
+        started_at: str,
+        resource_version: str | None = None,
+    ) -> int:
+        with self.conn:
+            cursor = self.conn.execute(
+                """
+                INSERT INTO enrichment_runs (
+                    provider,
+                    status,
+                    started_at,
+                    resource_version
+                )
+                VALUES (?, 'running', ?, ?)
+                """,
+                (provider, started_at, resource_version),
+            )
+        return cursor.lastrowid
+
+    def finish_enrichment_run(
+        self,
+        run_id: int,
+        status: str,
+        completed_at: str,
+        requested_count: int,
+        resolved_count: int,
+        unresolved_count: int,
+        error_summary: str | None = None,
+    ) -> None:
+        if status not in {"completed", "partial", "failed"}:
+            raise ValueError(
+                "Finished enrichment status must be completed, partial, or failed."
+            )
+
+        with self.conn:
+            cursor = self.conn.execute(
+                """
+                UPDATE enrichment_runs
+                SET status = ?,
+                    completed_at = ?,
+                    requested_count = ?,
+                    resolved_count = ?,
+                    unresolved_count = ?,
+                    error_summary = ?
+                WHERE id = ?
+                """,
+                (
+                    status,
+                    completed_at,
+                    requested_count,
+                    resolved_count,
+                    unresolved_count,
+                    error_summary,
+                    run_id,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError(f"Enrichment run {run_id} does not exist.")
 
     def close(self) -> None:
         self.conn.close()

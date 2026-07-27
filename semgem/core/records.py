@@ -43,3 +43,58 @@ class GeneRecord:
 class ReactionGeneRecord:
     reaction_id: str
     gene_id: str
+
+
+@dataclass(frozen=True)
+class ExternalTermRecord:
+    source: str
+    identifier: str
+    term_type: str
+    name: str | None = None
+    description: str | None = None
+    source_version: str | None = None
+    is_obsolete: bool = False
+
+
+@dataclass(frozen=True)
+class ExternalTermRelationshipRecord:
+    subject_source: str
+    subject_identifier: str
+    predicate: str
+    object_source: str
+    object_identifier: str
+    evidence: tuple["ProviderRelationshipEvidenceRecord", ...] = ()
+
+
+@dataclass(frozen=True)
+class ProviderRelationshipEvidenceRecord:
+    provider: str
+    retrieval_method: str
+    run_id: int | None = None
+    source_identifier: str | None = None
+    resource_version: str | None = None
+    retrieved_at: str | None = None
+    details: str | None = None
+
+
+@dataclass(frozen=True)
+class EntityAssertionEvidenceRecord:
+    provider: str
+    evidence_type: str
+    retrieval_method: str
+    relationship_id: int | None = None
+    run_id: int | None = None
+    source_annotation_id: int | None = None
+    source_identifier: str | None = None
+    resource_version: str | None = None
+    retrieved_at: str | None = None
+    details: str | None = None
+
+
+@dataclass(frozen=True)
+class EnrichmentAssertionRecord:
+    entity_id: int
+    predicate: str
+    term_source: str
+    term_identifier: str
+    evidence: tuple[EntityAssertionEvidenceRecord, ...] = ()

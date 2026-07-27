@@ -2,6 +2,13 @@ import sqlite3
 
 import pytest
 
+from semgem.core.records import (
+    EnrichmentAssertionRecord,
+    EntityAssertionEvidenceRecord,
+    ExternalTermRecord,
+    ExternalTermRelationshipRecord,
+    ProviderRelationshipEvidenceRecord,
+)
 from semgem.database.sqlite import (
     DuplicateModelError,
     EntityTypeError,
@@ -68,6 +75,12 @@ def test_initialisation_creates_the_agreed_tables(database):
         "reaction_metabolites",
         "reaction_genes",
         "annotations",
+        "external_terms",
+        "external_term_relationships",
+        "provider_relationship_evidence",
+        "enrichment_runs",
+        "enrichment_assertions",
+        "entity_assertion_evidence",
         "semantic_concepts",
         "concept_evidence",
     } <= names
@@ -215,3 +228,382 @@ def test_entity_type_validation_rejects_wrong_type(
 
     with pytest.raises(EntityTypeError):
         database._assert_entity_type(metabolite_id, "reaction")
+
+
+def test_enrichment_stores_shared_terms_relationships_and_evidence(
+    database, small_model, extracted
+):
+    _import(database, small_model, extracted)
+    entity_id, annotation_id = database.conn.execute(
+        """
+        SELECT e.id, a.id
+        FROM entities AS e
+        JOIN annotations AS a ON a.entity_id = e.id
+        WHERE e.original_id = 'BIOMASS_TEST'
+          AND a.source = 'sbo'
+          AND a.identifier = 'SBO:0000629'
+        """
+    ).fetchone()
+
+    database.store_enrichment(
+        terms=[
+            ExternalTermRecord(
+                source="sbo",
+                identifier="SBO:0000629",
+                term_type="interaction",
+                name="biomass production",
+                source_version="2021-08-28",
+            ),
+            ExternalTermRecord(
+                source="sbo",
+                identifier="SBO:0000375",
+                term_type="interaction",
+                name="process",
+                source_version="2021-08-28",
+            ),
+        ],
+        relationships=[
+            ExternalTermRelationshipRecord(
+                subject_source="sbo",
+                subject_identifier="SBO:0000629",
+                predicate="is_a",
+                object_source="sbo",
+                object_identifier="SBO:0000375",
+                evidence=(
+                    ProviderRelationshipEvidenceRecord(
+                        provider="sbo",
+                        retrieval_method="packaged_obo",
+                        resource_version="2021-08-28",
+                    ),
+                ),
+            )
+        ],
+        assertions=[
+            EnrichmentAssertionRecord(
+                entity_id=entity_id,
+                predicate="has_sbo_term",
+                term_source="sbo",
+                term_identifier="SBO:0000629",
+                evidence=(
+                    EntityAssertionEvidenceRecord(
+                        provider="sbo",
+                        evidence_type="source_model_annotation",
+                        source_annotation_id=annotation_id,
+                        source_identifier="SBO:0000629",
+                        retrieval_method="packaged_obo",
+                        resource_version="2021-08-28",
+                    ),
+                ),
+            )
+        ],
+    )
+
+    assert database.conn.execute("SELECT COUNT(*) FROM external_terms").fetchone()[0] == 2
+    assert database.conn.execute(
+        "SELECT COUNT(*) FROM external_term_relationships"
+    ).fetchone()[0] == 1
+    assert database.conn.execute(
+        "SELECT COUNT(*) FROM enrichment_assertions"
+    ).fetchone()[0] == 1
+    evidence = database.conn.execute(
+        """
+        SELECT evidence_type, source_annotation_id, resource_version
+        FROM entity_assertion_evidence
+        """
+    ).fetchone()
+    assert evidence == (
+        "source_model_annotation",
+        annotation_id,
+        "2021-08-28",
+    )
+    assert database.conn.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
+def test_enrichment_refresh_reuses_terms_and_replaces_evidence(
+    database, small_model, extracted
+):
+    _import(database, small_model, extracted)
+    entity_id = database.conn.execute(
+        "SELECT id FROM entities WHERE original_id = 'BIOMASS_TEST'"
+    ).fetchone()[0]
+    term = ExternalTermRecord(
+        source="sbo",
+        identifier="SBO:0000629",
+        term_type="interaction",
+        name="biomass production",
+    )
+
+    first = EnrichmentAssertionRecord(
+        entity_id=entity_id,
+        predicate="has_sbo_term",
+        term_source="sbo",
+        term_identifier="SBO:0000629",
+        evidence=(
+            EntityAssertionEvidenceRecord(
+                provider="sbo",
+                evidence_type="old",
+                retrieval_method="packaged_obo",
+            ),
+        ),
+    )
+    refreshed = EnrichmentAssertionRecord(
+        entity_id=entity_id,
+        predicate="has_sbo_term",
+        term_source="sbo",
+        term_identifier="SBO:0000629",
+        evidence=(
+            EntityAssertionEvidenceRecord(
+                provider="sbo",
+                evidence_type="refreshed",
+                retrieval_method="packaged_obo",
+            ),
+        ),
+    )
+
+    database.store_enrichment([term], [], [first])
+    database.store_enrichment([term], [], [refreshed])
+
+    assert database.conn.execute("SELECT COUNT(*) FROM external_terms").fetchone()[0] == 1
+    assert database.conn.execute(
+        "SELECT COUNT(*) FROM enrichment_assertions"
+    ).fetchone()[0] == 1
+    assert database.conn.execute(
+        "SELECT evidence_type FROM entity_assertion_evidence"
+    ).fetchall() == [("refreshed",)]
+
+
+def test_enrichment_refresh_preserves_evidence_from_other_providers(
+    database, small_model, extracted
+):
+    _import(database, small_model, extracted)
+    entity_id = database.conn.execute(
+        "SELECT id FROM entities WHERE original_id = 'BIOMASS_TEST'"
+    ).fetchone()[0]
+    term = ExternalTermRecord(
+        source="sbo",
+        identifier="SBO:0000629",
+        term_type="interaction",
+    )
+    initial = EnrichmentAssertionRecord(
+        entity_id=entity_id,
+        predicate="has_semantic_term",
+        term_source="sbo",
+        term_identifier="SBO:0000629",
+        evidence=(
+            EntityAssertionEvidenceRecord(
+                provider="sbo",
+                evidence_type="old_sbo",
+                retrieval_method="packaged_obo",
+            ),
+            EntityAssertionEvidenceRecord(
+                provider="metanetx",
+                evidence_type="cross_reference",
+                retrieval_method="local_cross_reference",
+            ),
+        ),
+    )
+    refreshed = EnrichmentAssertionRecord(
+        entity_id=entity_id,
+        predicate="has_semantic_term",
+        term_source="sbo",
+        term_identifier="SBO:0000629",
+        evidence=(
+            EntityAssertionEvidenceRecord(
+                provider="sbo",
+                evidence_type="refreshed_sbo",
+                retrieval_method="packaged_obo",
+            ),
+        ),
+    )
+
+    database.store_enrichment([term], [], [initial])
+    database.store_enrichment([term], [], [refreshed])
+
+    evidence = database.conn.execute(
+        """
+        SELECT provider, evidence_type
+        FROM entity_assertion_evidence
+        ORDER BY provider
+        """
+    ).fetchall()
+    assert evidence == [
+        ("metanetx", "cross_reference"),
+        ("sbo", "refreshed_sbo"),
+    ]
+
+
+def test_deleting_model_removes_assertions_but_preserves_shared_terms(
+    database, small_model, extracted
+):
+    model_id = _import(database, small_model, extracted)
+    entity_id = database.conn.execute(
+        "SELECT id FROM entities WHERE original_id = 'BIOMASS_TEST'"
+    ).fetchone()[0]
+    database.store_enrichment(
+        [
+            ExternalTermRecord(
+                source="sbo",
+                identifier="SBO:0000629",
+                term_type="interaction",
+            )
+        ],
+        [],
+        [
+            EnrichmentAssertionRecord(
+                entity_id=entity_id,
+                predicate="has_sbo_term",
+                term_source="sbo",
+                term_identifier="SBO:0000629",
+                evidence=(
+                    EntityAssertionEvidenceRecord(
+                        provider="sbo",
+                        evidence_type="source_model_annotation",
+                        retrieval_method="packaged_obo",
+                    ),
+                ),
+            )
+        ],
+    )
+
+    with database.conn:
+        database.conn.execute("DELETE FROM models WHERE id = ?", (model_id,))
+
+    assert database.conn.execute(
+        "SELECT COUNT(*) FROM enrichment_assertions"
+    ).fetchone()[0] == 0
+    assert database.conn.execute(
+        "SELECT COUNT(*) FROM entity_assertion_evidence"
+    ).fetchone()[0] == 0
+    assert database.conn.execute("SELECT COUNT(*) FROM external_terms").fetchone()[0] == 1
+
+
+def test_failed_enrichment_rolls_back_all_new_rows(
+    database, small_model, extracted
+):
+    _import(database, small_model, extracted)
+
+    with pytest.raises(ValueError, match="is not stored"):
+        database.store_enrichment(
+            [
+                ExternalTermRecord(
+                    source="sbo",
+                    identifier="SBO:0000629",
+                    term_type="interaction",
+                )
+            ],
+            [
+                ExternalTermRelationshipRecord(
+                    subject_source="sbo",
+                    subject_identifier="SBO:0000629",
+                    predicate="is_a",
+                    object_source="sbo",
+                    object_identifier="SBO:9999999",
+                )
+            ],
+            [],
+        )
+
+    assert database.conn.execute("SELECT COUNT(*) FROM external_terms").fetchone()[0] == 0
+
+
+def test_external_relationship_cache_is_shared_across_models(
+    database, small_model, extracted
+):
+    _import(database, small_model, extracted, content_hash="first")
+    second_model = small_model.copy()
+    second_model.id = "second_model"
+    _import(database, second_model, extracted, content_hash="second")
+
+    database.store_enrichment(
+        terms=[
+            ExternalTermRecord(
+                source="kegg.reaction",
+                identifier="R00001",
+                term_type="reaction",
+            ),
+            ExternalTermRecord(
+                source="kegg.pathway",
+                identifier="map00010",
+                term_type="pathway",
+                name="Glycolysis / Gluconeogenesis",
+            ),
+        ],
+        relationships=[
+            ExternalTermRelationshipRecord(
+                subject_source="kegg.reaction",
+                subject_identifier="R00001",
+                predicate="belongs_to_pathway",
+                object_source="kegg.pathway",
+                object_identifier="map00010",
+                evidence=(
+                    ProviderRelationshipEvidenceRecord(
+                        provider="kegg",
+                        retrieval_method="rest_link",
+                        source_identifier="R00001",
+                        retrieved_at="2026-07-27T12:00:00Z",
+                    ),
+                ),
+            )
+        ],
+        assertions=[],
+    )
+
+    assert database.conn.execute("SELECT COUNT(*) FROM external_terms").fetchone()[0] == 2
+    assert database.conn.execute(
+        "SELECT COUNT(*) FROM external_term_relationships"
+    ).fetchone()[0] == 1
+    assert database.conn.execute(
+        "SELECT provider FROM provider_relationship_evidence"
+    ).fetchall() == [("kegg",)]
+
+
+def test_enrichment_run_records_completion_and_counts(database):
+    run_id = database.start_enrichment_run(
+        provider="kegg",
+        started_at="2026-07-27T12:00:00Z",
+        resource_version="REST",
+    )
+    database.finish_enrichment_run(
+        run_id=run_id,
+        status="partial",
+        completed_at="2026-07-27T12:01:00Z",
+        requested_count=10,
+        resolved_count=8,
+        unresolved_count=2,
+        error_summary="Two identifiers were not resolved.",
+    )
+
+    row = database.conn.execute(
+        """
+        SELECT provider, status, requested_count, resolved_count,
+               unresolved_count, error_summary
+        FROM enrichment_runs
+        WHERE id = ?
+        """,
+        (run_id,),
+    ).fetchone()
+    assert row == (
+        "kegg",
+        "partial",
+        10,
+        8,
+        2,
+        "Two identifiers were not resolved.",
+    )
+
+
+def test_enrichment_run_rejects_invalid_finished_status(database):
+    run_id = database.start_enrichment_run(
+        provider="sbo",
+        started_at="2026-07-27T12:00:00Z",
+    )
+
+    with pytest.raises(ValueError, match="completed, partial, or failed"):
+        database.finish_enrichment_run(
+            run_id=run_id,
+            status="running",
+            completed_at="2026-07-27T12:01:00Z",
+            requested_count=0,
+            resolved_count=0,
+            unresolved_count=0,
+        )
