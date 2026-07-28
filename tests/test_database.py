@@ -1,5 +1,6 @@
 import sqlite3
 
+import cobra
 import pytest
 
 from semgem.core.records import (
@@ -17,6 +18,7 @@ from semgem.database.sqlite import (
     SemanticDatabase,
 )
 from semgem.evidence.rules import CandidateEvidence, ScoredConcept, ScoredEvidence
+from semgem.extract.extractor import Extractor
 
 
 def _import(db, model, extracted, content_hash="hash-one"):
@@ -65,6 +67,46 @@ def test_initialisation_creates_the_agreed_tables(database):
     } <= names
 
 
+def test_evidence_rows_expose_compartment_transport_structure(database):
+    model = cobra.Model("transport_model")
+    model.compartments = {"c": "Cytosol", "m": "Mitochondria"}
+    pyruvate_c = cobra.Metabolite(
+        "pyr_c",
+        name="Pyruvate",
+        compartment="c",
+    )
+    pyruvate_m = cobra.Metabolite(
+        "pyr_m",
+        name="Pyruvate",
+        compartment="m",
+    )
+    reaction = cobra.Reaction("PYRtm", name="Pyruvate transport")
+    reaction.add_metabolites({pyruvate_c: -1, pyruvate_m: 1})
+    model.add_reactions([reaction])
+    extractor = Extractor(model)
+
+    database.import_model(
+        model=model,
+        source_file="transport.xml",
+        content_hash="transport-hash",
+        reactions=extractor.extract_reactions(),
+        metabolites=extractor.extract_metabolites(),
+        genes=extractor.extract_genes(),
+        stoichiometry=extractor.extract_stoichiometry(),
+        reaction_genes=extractor.extract_reaction_genes(),
+    )
+
+    row = next(
+        item
+        for item in database.evidence_entity_rows()
+        if item["entity_type"] == "reaction"
+    )
+
+    assert row["has_transport_signature"] is True
+    assert row["transport_compartment_names"] == "Cytosol Mitochondria"
+    assert row["transported_metabolites"] == "pyr"
+
+
 def test_old_schema_is_rejected_with_a_clear_error(tmp_path, schema_path):
     db_path = tmp_path / "old.sqlite"
     connection = sqlite3.connect(db_path)
@@ -74,7 +116,7 @@ def test_old_schema_is_rejected_with_a_clear_error(tmp_path, schema_path):
     connection.close()
 
     database = SemanticDatabase(db_path, schema_path)
-    with pytest.raises(IncompatibleSchemaError, match="version 3 is required"):
+    with pytest.raises(IncompatibleSchemaError, match="version 4 is required"):
         database.initialise()
     database.close()
 
@@ -92,7 +134,8 @@ def test_partial_current_schema_is_rejected_with_a_clear_error(
             original_id TEXT,
             name TEXT,
             source_file TEXT,
-            content_hash TEXT
+            content_hash TEXT,
+            compartments_json TEXT
         );
         CREATE TABLE semantic_concepts (
             id INTEGER PRIMARY KEY,
@@ -100,7 +143,7 @@ def test_partial_current_schema_is_rejected_with_a_clear_error(
             concept_name TEXT,
             confidence REAL
         );
-        PRAGMA user_version = 3;
+        PRAGMA user_version = 4;
         """
     )
     connection.close()

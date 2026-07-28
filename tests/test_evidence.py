@@ -27,7 +27,7 @@ def loaded_policy():
 def test_packaged_concepts_and_policy_load():
     concepts, policy = loaded_policy()
 
-    assert len(concepts) == 84
+    assert len(concepts) == 102
     assert "pathway:glycolysis" in concepts
     assert "reaction_type:biochemical_reaction" in concepts
     assert "pathway:nucleotide_metabolism" in concepts
@@ -169,6 +169,99 @@ def test_weak_name_match_alone_does_not_create_a_conclusion():
     assert all(
         conclusion.concept_id != "pathway:glycolysis"
         for conclusion in scored
+    )
+
+
+def test_static_transport_structure_assigns_location_without_subsystem():
+    concepts, policy = loaded_policy()
+    database = StubDatabase(
+        entity_rows=[
+            {
+                "entity_id": 10,
+                "entity_type": "reaction",
+                "original_id": "PYRtm",
+                "name": "Pyruvate transport",
+                "objective_coefficient": 0.0,
+                "equation": "pyr_c -> pyr_m",
+                "subsystem": "",
+                "metabolite_text": "pyr_c pyruvate pyr_m pyruvate",
+                "has_transport_signature": True,
+                "transport_compartment_names": "Cytosol Mitochondria",
+                "combined_text": "PYRtm Pyruvate transport pyr_c -> pyr_m",
+            }
+        ]
+    )
+
+    candidates = ModelEvidenceGenerator(
+        policy,
+        ConceptRegistry(concepts),
+    ).generate(database)
+    conclusions = EvidenceScorer(policy, concepts).score(candidates)
+    assigned = {conclusion.concept_id for conclusion in conclusions}
+
+    assert "reaction_type:translocation_reaction" in assigned
+    assert "transport:mitochondria" in assigned
+
+
+def test_subsystem_evidence_can_be_disabled_without_text_leakage():
+    concepts, policy = loaded_policy()
+    database = StubDatabase(
+        entity_rows=[
+            {
+                "entity_id": 10,
+                "entity_type": "reaction",
+                "original_id": "UNRECOGNISED",
+                "name": "Uninformative reaction",
+                "objective_coefficient": 0.0,
+                "equation": "a -> b",
+                "subsystem": "Glycolysis / Gluconeogenesis",
+                "metabolite_text": "a b",
+                "combined_text": (
+                    "UNRECOGNISED Uninformative reaction a -> b "
+                    "Glycolysis / Gluconeogenesis"
+                ),
+            }
+        ]
+    )
+
+    candidates = ModelEvidenceGenerator(
+        policy,
+        ConceptRegistry(concepts),
+    ).generate(database, include_subsystem_evidence=False)
+
+    assert all(candidate.concept_id != "pathway:glycolysis" for candidate in candidates)
+
+
+def test_curated_enzyme_name_generates_static_pathway_evidence():
+    concepts, policy = loaded_policy()
+    database = StubDatabase(
+        entity_rows=[
+            {
+                "entity_id": 10,
+                "entity_type": "reaction",
+                "original_id": "MODEL_SPECIFIC_1",
+                "name": "Fructose-bisphosphate aldolase, chloroplast",
+                "objective_coefficient": 0.0,
+                "equation": "fdp -> g3p + dhap",
+                "subsystem": "",
+                "metabolite_text": "fdp g3p dhap",
+                "combined_text": (
+                    "MODEL_SPECIFIC_1 Fructose-bisphosphate aldolase, "
+                    "chloroplast fdp -> g3p + dhap"
+                ),
+            }
+        ]
+    )
+
+    candidates = ModelEvidenceGenerator(
+        policy,
+        ConceptRegistry(concepts),
+    ).generate(database)
+    conclusions = EvidenceScorer(policy, concepts).score(candidates)
+
+    assert any(
+        conclusion.concept_id == "pathway:glycolysis"
+        for conclusion in conclusions
     )
 
 
@@ -488,6 +581,75 @@ def test_strict_id_prefix_rules_avoid_similar_non_boundary_ids(reaction_id):
     }
 
     assert not ({candidate.concept_id for candidate in candidates} & forbidden)
+
+
+@pytest.mark.parametrize(
+    ("reaction_id", "concept_id"),
+    [
+        ("PGI", "pathway:glycolysis"),
+        ("TKT1", "pathway:pentose_phosphate_pathway"),
+        ("ACONT", "pathway:tricarboxylic_acid_cycle"),
+    ],
+)
+def test_curated_exact_reaction_ids_generate_pathway_evidence(
+    reaction_id,
+    concept_id,
+):
+    concepts, policy = loaded_policy()
+    database = StubDatabase(
+        entity_rows=[
+            {
+                "entity_id": 10,
+                "entity_type": "reaction",
+                "original_id": reaction_id,
+                "name": "",
+                "objective_coefficient": 0.0,
+                "equation": "",
+                "subsystem": "",
+                "combined_text": reaction_id,
+            }
+        ]
+    )
+
+    candidates = ModelEvidenceGenerator(
+        policy,
+        ConceptRegistry(concepts),
+    ).generate(database)
+
+    assert any(
+        candidate.concept_id == concept_id
+        and candidate.evidence_code == "exact_reaction_id_concept_match"
+        for candidate in candidates
+    )
+
+
+@pytest.mark.parametrize("reaction_id", ["PGI2", "pgi", "PGI_c", "MY_PGI"])
+def test_exact_reaction_id_rules_reject_similar_identifiers(reaction_id):
+    concepts, policy = loaded_policy()
+    database = StubDatabase(
+        entity_rows=[
+            {
+                "entity_id": 10,
+                "entity_type": "reaction",
+                "original_id": reaction_id,
+                "name": "",
+                "objective_coefficient": 0.0,
+                "equation": "",
+                "subsystem": "",
+                "combined_text": reaction_id,
+            }
+        ]
+    )
+
+    candidates = ModelEvidenceGenerator(
+        policy,
+        ConceptRegistry(concepts),
+    ).generate(database)
+
+    assert not any(
+        candidate.evidence_code == "exact_reaction_id_concept_match"
+        for candidate in candidates
+    )
 
 
 def test_external_label_evidence_targets_canonical_concept():

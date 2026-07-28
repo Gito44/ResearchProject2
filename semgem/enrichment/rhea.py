@@ -127,7 +127,11 @@ class RheaProvider(EnrichmentProvider):
                     evidence=(
                         EntityAssertionEvidenceRecord(
                             provider=self.name,
-                            evidence_type="source_model_annotation",
+                            evidence_type=(
+                                "source_model_annotation"
+                                if annotation.annotation_id is not None
+                                else "model_identifier_pattern"
+                            ),
                             retrieval_method="rhea2xrefs_tsv",
                             run_id=run_id,
                             source_annotation_id=annotation.annotation_id,

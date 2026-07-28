@@ -47,10 +47,10 @@ class SemanticDatabase:
         ).fetchone()
         if existing_models_table is not None:
             schema_version = self.conn.execute("PRAGMA user_version").fetchone()[0]
-            if schema_version != 3:
+            if schema_version != 4:
                 raise IncompatibleSchemaError(
                     f"The existing database uses SemGEM schema version "
-                    f"{schema_version}; version 3 is required. Create a new "
+                    f"{schema_version}; version 4 is required. Create a new "
                     "catalog and rebuild it from the source model files."
                 )
             columns = {
@@ -62,6 +62,7 @@ class SemanticDatabase:
                 "name",
                 "source_file",
                 "content_hash",
+                "compartments_json",
             }
             if not required_columns <= columns:
                 raise IncompatibleSchemaError(
@@ -108,6 +109,7 @@ class SemanticDatabase:
                     name=model.name,
                     source_file=source_file,
                     content_hash=content_hash,
+                    compartments=dict(model.compartments),
                 )
 
                 reaction_ids = self._insert_reactions(model_db_id, reactions)
@@ -162,13 +164,26 @@ class SemanticDatabase:
         name: str | None,
         source_file: str,
         content_hash: str,
+        compartments: dict[str, str],
     ) -> int:
         cursor = self.conn.execute(
             """
-            INSERT INTO models (original_id, name, source_file, content_hash)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO models (
+                original_id,
+                name,
+                source_file,
+                content_hash,
+                compartments_json
+            )
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (original_id, name, source_file, content_hash),
+            (
+                original_id,
+                name,
+                source_file,
+                content_hash,
+                json.dumps(compartments, sort_keys=True),
+            ),
         )
         return cursor.lastrowid
 
@@ -714,18 +729,100 @@ class SemanticDatabase:
                    e.name,
                    r.objective_coefficient,
                    r.equation,
-                   r.subsystem
+                   r.subsystem,
+                   e.model_id
             FROM entities AS e
             LEFT JOIN reactions AS r ON r.entity_id = e.id
             ORDER BY e.id
             """
         ).fetchall()
+        compartment_maps = {
+            row[0]: json.loads(row[1] or "{}")
+            for row in self.conn.execute(
+                "SELECT id, compartments_json FROM models"
+            ).fetchall()
+        }
+        reaction_metabolites: dict[int, list[tuple[str, str, str, float]]] = {}
+        for row in self.conn.execute(
+            """
+            SELECT rm.reaction_entity_id,
+                   entity.original_id,
+                   entity.name,
+                   metabolite.compartment,
+                   rm.coefficient
+            FROM reaction_metabolites AS rm
+            JOIN metabolites AS metabolite
+              ON metabolite.entity_id = rm.metabolite_entity_id
+            JOIN entities AS entity
+              ON entity.id = rm.metabolite_entity_id
+            ORDER BY rm.reaction_entity_id, entity.original_id
+            """
+        ).fetchall():
+            reaction_metabolites.setdefault(row[0], []).append(
+                (row[1] or "", row[2] or "", row[3] or "", float(row[4]))
+            )
         output = []
         for row in rows:
             original_id = row[2] or ""
             name = row[3] or ""
             equation = row[5] or ""
             subsystem = row[6] or ""
+            participants = reaction_metabolites.get(row[0], [])
+            compartment_ids = sorted(
+                {item[2] for item in participants if item[2]}
+            )
+            compartment_map = compartment_maps.get(row[7], {})
+            compartment_names = [
+                compartment_map.get(identifier, identifier)
+                for identifier in compartment_ids
+            ]
+
+            def participant_text(items):
+                return " ".join(
+                    f"{metabolite_id} {metabolite_name}".strip()
+                    for metabolite_id, metabolite_name, _, _ in items
+                )
+
+            reactants = [item for item in participants if item[3] < 0]
+            products = [item for item in participants if item[3] > 0]
+            metabolite_text = participant_text(participants)
+            reactant_text = participant_text(reactants)
+            product_text = participant_text(products)
+            is_multi_compartment = len(compartment_ids) > 1
+
+            def compartment_free_id(
+                metabolite_id: str,
+                compartment: str,
+            ) -> str | None:
+                for suffix in (
+                    f"_{compartment}",
+                    f"[{compartment}]",
+                    f"__{compartment}",
+                ):
+                    if metabolite_id.endswith(suffix):
+                        return metabolite_id[: -len(suffix)]
+                return None
+
+            transported_reactants = {
+                base
+                for metabolite_id, _, compartment, _ in reactants
+                if (
+                    base := compartment_free_id(metabolite_id, compartment)
+                )
+            }
+            transported_products = {
+                base
+                for metabolite_id, _, compartment, _ in products
+                if (
+                    base := compartment_free_id(metabolite_id, compartment)
+                )
+            }
+            transported_metabolites = sorted(
+                transported_reactants & transported_products
+            )
+            has_transport_signature = (
+                is_multi_compartment and bool(transported_metabolites)
+            )
             output.append(
                 {
                     "entity_id": row[0],
@@ -735,8 +832,27 @@ class SemanticDatabase:
                     "objective_coefficient": row[4],
                     "equation": equation,
                     "subsystem": subsystem,
+                    "metabolite_text": metabolite_text,
+                    "reactant_text": reactant_text,
+                    "product_text": product_text,
+                    "compartment_ids": " ".join(compartment_ids),
+                    "compartment_names": " ".join(compartment_names),
+                    "is_multi_compartment": is_multi_compartment,
+                    "has_transport_signature": has_transport_signature,
+                    "transported_metabolites": " ".join(transported_metabolites),
+                    "transport_compartment_names": (
+                        " ".join(compartment_names)
+                        if has_transport_signature
+                        else ""
+                    ),
                     "combined_text": " ".join(
-                        (original_id, name, equation, subsystem)
+                        (
+                            original_id,
+                            name,
+                            equation,
+                            metabolite_text,
+                            subsystem,
+                        )
                     ),
                 }
             )

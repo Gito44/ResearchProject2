@@ -35,6 +35,60 @@ synonyms = [
     "transport, outer membrane porin",
 ]
 
+[concepts."transport:chloroplast"]
+category = "transport"
+preferred_label = "Transport, chloroplast"
+description = "A reaction transporting material into or out of the chloroplast."
+synonyms = ["chloroplast transport"]
+
+[concepts."transport:mitochondria"]
+category = "transport"
+preferred_label = "Transport, mitochondria"
+description = "A reaction transporting material into or out of mitochondria."
+synonyms = ["mitochondrial transport", "mitochondria transport"]
+
+[concepts."transport:extracellular"]
+category = "transport"
+preferred_label = "Transport, extracellular"
+description = "A reaction transporting material across the extracellular boundary."
+synonyms = ["extracellular transport", "transport, extra-organism"]
+
+[concepts."transport:glyoxysome"]
+category = "transport"
+preferred_label = "Transport, glyoxysome"
+description = "A reaction transporting material into or out of the glyoxysome."
+synonyms = ["glyoxysomal transport", "glyoxysome transport"]
+
+[concepts."transport:thylakoid_lumen"]
+category = "transport"
+preferred_label = "Transport, thylakoid lumen"
+description = "A reaction transporting material across the thylakoid membrane."
+synonyms = ["thylakoid transport", "thylakoid lumen transport"]
+
+[concepts."transport:nucleus"]
+category = "transport"
+preferred_label = "Transport, nucleus"
+description = "A reaction transporting material into or out of the nucleus."
+synonyms = ["nuclear transport", "nucleus transport"]
+
+[concepts."transport:flagellum"]
+category = "transport"
+preferred_label = "Transport, flagella"
+description = "A reaction transporting material into or out of a flagellum."
+synonyms = ["flagellar transport", "flagellum transport"]
+
+[concepts."transport:golgi"]
+category = "transport"
+preferred_label = "Transport, Golgi"
+description = "A reaction transporting material into or out of the Golgi apparatus."
+synonyms = ["Golgi transport", "Golgi apparatus transport"]
+
+[concepts."transport:eyespot"]
+category = "transport"
+preferred_label = "Transport, eyespot"
+description = "A reaction transporting material into or out of the eyespot."
+synonyms = ["eyespot transport"]
+
 [concepts."reaction_type:demand_reaction"]
 category = "reaction_type"
 preferred_label = "Demand reaction"
@@ -562,3 +616,57 @@ category = "pathway"
 preferred_label = "Branched-chain amino acid degradation"
 description = "Reactions associated with valine, leucine, and isoleucine degradation."
 synonyms = ["valine, leucine and isoleucine degradation"]
+
+[concepts."pathway:inositol_phosphate_metabolism"]
+category = "pathway"
+preferred_label = "Inositol phosphate metabolism"
+description = "Reactions associated with inositol-phosphate metabolism."
+synonyms = []
+
+[concepts."pathway:steroid_biosynthesis"]
+category = "pathway"
+preferred_label = "Steroid biosynthesis"
+description = "Reactions associated with steroid biosynthesis."
+synonyms = ["biosynthesis of steroids"]
+
+[concepts."pathway:n_glycan_biosynthesis"]
+category = "pathway"
+preferred_label = "N-Glycan biosynthesis"
+description = "Reactions associated with N-glycan biosynthesis."
+synonyms = ["high-mannose type N-glycan biosynthesis"]
+
+[concepts."pathway:o_glycan_biosynthesis"]
+category = "pathway"
+preferred_label = "O-Glycan biosynthesis"
+description = "Reactions associated with O-glycan biosynthesis."
+synonyms = []
+
+[concepts."pathway:folate_biosynthesis"]
+category = "pathway"
+preferred_label = "Folate biosynthesis"
+description = "Reactions associated with folate biosynthesis."
+synonyms = []
+
+[concepts."pathway:unsaturated_fatty_acid_biosynthesis"]
+category = "pathway"
+preferred_label = "Biosynthesis of unsaturated fatty acids"
+description = "Reactions associated with unsaturated-fatty-acid biosynthesis."
+synonyms = ["unsaturated fatty acid biosynthesis"]
+
+[concepts."pathway:sphingolipid_metabolism"]
+category = "pathway"
+preferred_label = "Sphingolipid metabolism"
+description = "Reactions associated with sphingolipid metabolism."
+synonyms = []
+
+[concepts."pathway:retinol_metabolism"]
+category = "pathway"
+preferred_label = "Retinol metabolism"
+description = "Reactions associated with retinol metabolism."
+synonyms = []
+
+[concepts."pathway:polyamine_metabolism"]
+category = "pathway"
+preferred_label = "Polyamine metabolism"
+description = "Reactions associated with polyamine metabolism."
+synonyms = []

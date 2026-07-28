@@ -13,7 +13,11 @@ The SemGEM SQLite catalog is designed to:
 
 ## Model identity
 
-`models.id` is the database-local model key. `models.original_id` preserves the SBML model ID. A SHA-256 hash of the source file supports exact duplicate and identity-conflict detection.
+`models.id` is the database-local model key. `models.original_id` preserves the
+SBML model ID. A SHA-256 hash of the source file supports exact duplicate and
+identity-conflict detection. `models.compartments_json` preserves the model's
+mapping from compartment identifiers to readable names so static inference can
+distinguish mitochondrial, chloroplast, extracellular, and other transport.
 
 The current behavior is:
 

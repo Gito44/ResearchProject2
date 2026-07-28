@@ -56,6 +56,16 @@ source = "model"
 description = "An exchange-reaction identifier contains a specific metabolite label."
 weight = 0.95
 
+[evidence.exact_reaction_id_concept_match]
+source = "model"
+description = "The reaction identifier exactly matched a curated community identifier assigned to this canonical concept."
+weight = 0.95
+
+[evidence.curated_reaction_name_pattern]
+source = "model"
+description = "The normalized reaction name contains a curated pathway-specific enzyme or reaction label."
+weight = 0.80
+
 [evidence.demand_id_pattern]
 source = "model"
 description = "The reaction identifier starts with the conventional DM_ demand prefix."
@@ -80,6 +90,16 @@ weight = 0.70
 source = "model"
 description = "The reaction subsystem exactly matched a canonical label or synonym."
 weight = 0.80
+
+[evidence.cross_compartment_transport_structure]
+source = "model"
+description = "The same metabolite identity occurs on opposite sides of the reaction in different compartments."
+weight = 0.95
+
+[evidence.transport_compartment_match]
+source = "model"
+description = "A multi-compartment reaction includes the named destination compartment."
+weight = 0.95
 
 [evidence.sbo_term_label_match]
 source = "sbo"
@@ -148,6 +168,86 @@ entity_type = "reaction"
 target_field = "combined_text"
 operator = "contains"
 value = "exchange"
+
+[[model_rules]]
+concept_id = "reaction_type:translocation_reaction"
+evidence_code = "cross_compartment_transport_structure"
+entity_type = "reaction"
+target_field = "has_transport_signature"
+operator = "equals"
+value = true
+
+[[model_rules]]
+concept_id = "transport:chloroplast"
+evidence_code = "transport_compartment_match"
+entity_type = "reaction"
+target_field = "transport_compartment_names"
+operator = "contains"
+value = "chloroplast"
+
+[[model_rules]]
+concept_id = "transport:mitochondria"
+evidence_code = "transport_compartment_match"
+entity_type = "reaction"
+target_field = "transport_compartment_names"
+operator = "contains"
+value = "mitochondria"
+
+[[model_rules]]
+concept_id = "transport:extracellular"
+evidence_code = "transport_compartment_match"
+entity_type = "reaction"
+target_field = "transport_compartment_names"
+operator = "contains_any"
+values = ["extra-organism", "extracellular"]
+
+[[model_rules]]
+concept_id = "transport:glyoxysome"
+evidence_code = "transport_compartment_match"
+entity_type = "reaction"
+target_field = "transport_compartment_names"
+operator = "contains"
+value = "glyoxysome"
+
+[[model_rules]]
+concept_id = "transport:thylakoid_lumen"
+evidence_code = "transport_compartment_match"
+entity_type = "reaction"
+target_field = "transport_compartment_names"
+operator = "contains"
+value = "thylakoid"
+
+[[model_rules]]
+concept_id = "transport:nucleus"
+evidence_code = "transport_compartment_match"
+entity_type = "reaction"
+target_field = "transport_compartment_names"
+operator = "contains"
+value = "nucleus"
+
+[[model_rules]]
+concept_id = "transport:flagellum"
+evidence_code = "transport_compartment_match"
+entity_type = "reaction"
+target_field = "transport_compartment_names"
+operator = "contains_any"
+values = ["flagellum", "flagella"]
+
+[[model_rules]]
+concept_id = "transport:golgi"
+evidence_code = "transport_compartment_match"
+entity_type = "reaction"
+target_field = "transport_compartment_names"
+operator = "contains"
+value = "golgi"
+
+[[model_rules]]
+concept_id = "transport:eyespot"
+evidence_code = "transport_compartment_match"
+entity_type = "reaction"
+target_field = "transport_compartment_names"
+operator = "contains"
+value = "eyespot"
 
 [[model_rules]]
 concept_id = "exchange:oxygen"
@@ -244,3 +344,83 @@ entity_type = "reaction"
 target_field = "original_id"
 operator = "contains_all_normalized_groups"
 value_groups = [["EX_"], ["photon", "light"]]
+
+[[model_rules]]
+concept_id = "pathway:glycolysis"
+evidence_code = "exact_reaction_id_concept_match"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "in"
+values = ["PGI", "PFK", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
+
+[[model_rules]]
+concept_id = "pathway:glycolysis"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "enolase",
+    "fructose-bisphosphate aldolase",
+    "glucose-6-phosphate isomerase",
+    "glyceraldehyde-3-phosphate dehydrogenase",
+    "glucokinase",
+    "hexokinase",
+    "phosphofructokinase",
+    "phosphoglycerate kinase",
+    "phosphoglycerate mutase",
+    "pyruvate kinase",
+    "triosephosphate isomerase",
+]
+
+[[model_rules]]
+concept_id = "pathway:pentose_phosphate_pathway"
+evidence_code = "exact_reaction_id_concept_match"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "in"
+values = ["G6PDH2r", "PGL", "GND", "RPI", "RPE", "TKT1", "TKT2", "TALA"]
+
+[[model_rules]]
+concept_id = "pathway:pentose_phosphate_pathway"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "glucose-6-phosphate dehydrogenase",
+    "6-phosphogluconolactonase",
+    "6-phosphogluconate dehydrogenase",
+    "ribose-5-phosphate isomerase",
+    "ribulose-phosphate epimerase",
+    "transketolase",
+    "transaldolase",
+]
+
+[[model_rules]]
+concept_id = "pathway:tricarboxylic_acid_cycle"
+evidence_code = "exact_reaction_id_concept_match"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "in"
+values = ["CS", "ACONT", "ACONTa", "ACONTb", "ICDHyr", "AKGDH", "SUCOAS", "SUCDi", "FUM", "MDH", "MDHi2"]
+
+[[model_rules]]
+concept_id = "pathway:tricarboxylic_acid_cycle"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "citrate synthase",
+    "aconitate hydratase",
+    "aconitase",
+    "isocitrate dehydrogenase",
+    "2-oxoglutarate dehydrogenase",
+    "alpha-ketoglutarate dehydrogenase",
+    "succinyl-CoA synthetase",
+    "succinate dehydrogenase",
+    "fumarase",
+    "fumarate hydratase",
+    "malate dehydrogenase",
+]

@@ -5,6 +5,42 @@ performed for the provisional v0.5.1 implementation. It is not the final thesis
 results chapter. The manually curated benchmark should receive independent
 biological review before its results are treated as definitive.
 
+## Annotation-free iRC1080 subsystem benchmark (development)
+
+The iRC1080-Chapman3 SBML model provides 2,191 reactions with 83 individual
+subsystem labels after composite labels are split. The reaction set exactly
+matches the accompanying Project 1 catalog. The model contains no reaction
+annotations, making it a useful development benchmark for static inference.
+
+The benchmark stores the original subsystem labels as ground truth, removes
+them from the in-memory model, and runs SemGEM with subsystem evidence
+disabled. It must not be treated as the final independent test because its
+results will guide rule development.
+
+| Configuration | Reaction coverage | Comparable precision | Comparable recall | Comparable F1 |
+|---|---:|---:|---:|---:|
+| Static rules only | 24.0% | 91.6% | 23.6% | 37.5% |
+| Static + MetaNetX-validated local IDs + runtime KEGG | 44.4% | 77.2% | 42.0% | 54.4% |
+
+Category results for the complete development run:
+
+| Category | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| Transport location | 90.8% | 99.5% | 95.0% |
+| Reaction type | 98.6% | 100.0% | 99.3% |
+| Pathway | 66.5% | 26.6% | 38.0% |
+
+MetaNetX confirmed exact matches for 1,587 of 2,099 annotation-free local
+reaction identifiers. Of those identities, 417 had KEGG reaction
+cross-references used for runtime pathway lookup. No KEGG mapping is bundled
+with SemGEM.
+
+The main remaining limitation is pathway inference. KEGG reference-map
+membership is broader than model-local subsystem curation, while many
+reactions have no KEGG-cross-referenced identity. Further work should add
+conservative reaction-name and stoichiometric-signature evidence, followed by
+evaluation on an independent labeled model.
+
 ## Questions
 
 The evaluation asks:
@@ -14,6 +50,125 @@ The evaluation asks:
 3. How consistently does it process a diverse multi-model cohort?
 4. What are its current precision, recall, runtime, and coverage?
 5. Do the evidence weights and thresholds require further adjustment?
+
+## Current v0.5.3 all-model benchmark
+
+This is the current primary coverage benchmark. One fresh catalog was built
+from all 19 locally available valid models using:
+
+- exact model rules and the experimental exact-ID mappings;
+- strict external accessions inferred from local reaction IDs;
+- SBO;
+- MetaNetX `reac_xref.tsv`;
+- Rhea `rhea2xrefs.tsv`; and
+- runtime KEGG pathway enrichment.
+
+The build contained 41,131 reactions and completed in 964.8 seconds. Three
+source files were excluded for previously reproduced structural failures: two
+had empty SBML model IDs and one BioModels file contained an invalid control
+character rejected by COBRApy.
+
+| Measure | Current result |
+|---|---:|
+| Models | 19 |
+| Reactions | 41,131 |
+| Reactions with any semantic conclusion | 38,709 (94.1%) |
+| Reactions with at least one pathway conclusion | 9,283 (22.6%) |
+| Pathway conclusions | 16,315 |
+| Distinct pathway concepts used | 67 |
+| All semantic conclusions | 51,984 |
+| Candidate evidence records evaluated | 94,669 |
+| Catalog size | approximately 92 MB |
+
+Pathway coverage is calculated from distinct reaction entities having at least
+one accepted `semantic_concepts.concept_name` beginning with `pathway:`. Broad
+SBO reaction types are excluded from this numerator.
+
+### Per-model pathway coverage
+
+| Model | Reactions | Pathway reactions | Coverage |
+|---|---:|---:|---:|
+| iJN678 | 863 | 610 | 70.7% |
+| iJO1366 | 2,583 | 1,480 | 57.3% |
+| MODEL1507180050 | 1,254 | 700 | 55.8% |
+| MODEL1507180064 | 1,785 | 955 | 53.5% |
+| iMM904 | 1,577 | 805 | 51.0% |
+| *E. coli* core | 95 | 47 | 49.5% |
+| iCN900 | 1,230 | 417 | 33.9% |
+| iYO844 | 1,250 | 409 | 32.7% |
+| iAM_Pf480 | 1,083 | 252 | 23.3% |
+| iML1515 | 2,712 | 601 | 22.2% |
+| GCF_000167875_2 | 2,732 | 602 | 22.0% |
+| GCF_000967155_2 | 2,732 | 602 | 22.0% |
+| iYS1720 | 3,357 | 738 | 22.0% |
+| Recon3D | 10,600 | 991 | 9.3% |
+| MODEL1507180060 | 1,075 | 24 | 2.2% |
+| GCF_003053245_1 | 1,125 | 11 | 1.0% |
+| GCF_019456065_1 | 1,064 | 10 | 0.9% |
+| GCF_002079545_1 | 1,243 | 10 | 0.8% |
+| iEC1364_W | 2,771 | 19 | 0.7% |
+
+### Evidence contribution
+
+| Evidence source | Pathway-covered reactions supported |
+|---|---:|
+| MetaNetX bridge | 7,768 |
+| Rhea bridge | 5,207 |
+| Direct/inferred KEGG | 3,737 |
+| Model subsystem or exact ID | 2,988 |
+
+These sets overlap. Cumulative distinct coverage was:
+
+| Enabled evidence | Distinct pathway reactions |
+|---|---:|
+| Model evidence | 2,988 |
+| Model + direct/inferred KEGG | 6,029 |
+| Model + KEGG + MetaNetX | 9,281 |
+| All sources including Rhea | 9,283 |
+
+Rhea added only two unique pathway-covered reactions beyond MetaNetX in this
+cohort, but cross-checked 5,207 reactions. MetaNetX produced the largest unique
+coverage gain. Experimental static exact-ID evidence supported 310 reactions.
+
+Provider resolution was:
+
+| Provider | Resolved | Requested | Unresolved |
+|---|---:|---:|---:|
+| SBO | 11 | 11 | 0 |
+| MetaNetX | 28,162 | 29,229 | 1,067 |
+| Rhea | 3,317 | 6,002 | 2,685 |
+| KEGG | 3,363 | 3,363 | 0 |
+
+### Current curated accuracy
+
+Against the 118-pair development benchmark, the complete unfiltered catalog
+produced:
+
+| Precision | Recall | F1 | TP | FP | FN |
+|---:|---:|---:|---:|---:|---:|
+| 0.771 | 1.000 | 0.871 | 118 | 35 | 0 |
+
+The model-only result was 1.000 for precision, recall, and F1, but is partly
+circular because the exact-ID development mappings were constructed using this
+benchmark. External provider evidence recovered more reference-map
+memberships, but added 35 strict false positives, primarily carbon-fixation
+memberships for shared central-metabolism reactions.
+
+Source-specific benchmark results were:
+
+| Evidence policy | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| Model evidence only | 1.000 | 1.000 | 1.000 |
+| Direct KEGG only | 0.571 | 0.136 | 0.219 |
+| MetaNetX bridge only | 0.615 | 0.475 | 0.536 |
+| Rhea bridge only | 0.629 | 0.331 | 0.433 |
+| At least two external providers | 0.629 | 0.331 | 0.433 |
+| All current evidence | 0.771 | 1.000 | 0.871 |
+
+Cross-provider agreement alone did not remove the reference-map scope problem,
+because MetaNetX and Rhea can converge on the same KEGG reaction and therefore
+the same broad pathway membership. The next semantic-policy task is to
+distinguish reference-map membership from model-local pathway assignment.
 
 ## Curated benchmark
 
@@ -222,6 +377,38 @@ least two of model, direct KEGG, MetaNetX-bridged, or Rhea-bridged evidence.
 This makes later agreement and consensus analysis possible. The provisional
 v0.5.2 scorer currently accepts either identity bridge at weight 0.85; whether
 agreement should alter confidence remains an evaluation question.
+
+## Experimental v0.5.3 exact-ID evaluation
+
+The v0.5.3 experiment adds two strict model-identifier mechanisms:
+
+1. a small exact community-ID mapping for glycolysis, the pentose phosphate
+   pathway, and the TCA cycle; and
+2. recognition of local reaction IDs that are themselves strict KEGG, Rhea, or
+   MetaNetX accessions.
+
+The 118-pair development benchmark changed from precision 1.000, recall 0.788,
+and F1 0.882 to 1.000 for all three metrics. This is useful regression evidence
+but is not independent validation: the exact-ID table was built partly from
+the same curated central-metabolism examples.
+
+An independent repository-format check used annotation-free BioModels iJR904.
+Without KEGG or subsystem evidence, exact community IDs recovered:
+
+- 9 glycolysis reactions;
+- 8 pentose-phosphate reactions; and
+- 7 TCA-cycle reactions.
+
+BioModels PpaMBEL1254 uses KEGG reaction accessions directly as all 1,254 local
+reaction IDs while supplying no reaction annotation rows. Strict identifier
+inference plus runtime KEGG enrichment resolved all 1,254 inputs and assigned
+at least one pathway concept to 698 reactions (55.7%) in approximately
+303 seconds. The raw annotation table remained empty; all entity assertions
+recorded `model_identifier_pattern` provenance.
+
+As with other KEGG results, 55.7% is reference-map coverage rather than
+validated model-local pathway accuracy. The output included broad memberships
+such as carbon fixation, so biological holdout review remains required.
 
 ## Performance
 

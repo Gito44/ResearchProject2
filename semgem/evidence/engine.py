@@ -16,11 +16,32 @@ class ModelEvidenceGenerator:
         self.policy = policy
         self.registry = registry
 
-    def generate(self, database) -> list[CandidateEvidence]:
+    def generate(
+        self,
+        database,
+        include_subsystem_evidence: bool = True,
+    ) -> list[CandidateEvidence]:
         candidates = []
         entities = database.evidence_entity_rows()
         for entity in entities:
+            if not include_subsystem_evidence:
+                entity = dict(entity)
+                entity["subsystem"] = ""
+                entity["combined_text"] = " ".join(
+                    str(entity.get(field, "") or "")
+                    for field in (
+                        "original_id",
+                        "name",
+                        "equation",
+                        "metabolite_text",
+                    )
+                )
             for rule in self.policy.model_rules:
+                if (
+                    not include_subsystem_evidence
+                    and rule.target_field == "subsystem"
+                ):
+                    continue
                 if entity["entity_type"] != rule.entity_type:
                     continue
                 matched, observed = self._evaluate(rule, entity)
@@ -43,6 +64,8 @@ class ModelEvidenceGenerator:
                 ("name", "model_name_label_match"),
                 ("subsystem", "model_subsystem_label_match"),
             ):
+                if field == "subsystem" and not include_subsystem_evidence:
+                    continue
                 observed = entity.get(field)
                 for concept_id in self.registry.match_label(observed):
                     definition = self.policy.definitions[evidence_code]
@@ -109,6 +132,9 @@ class ModelEvidenceGenerator:
             return True, ", ".join(matches)
         if rule.operator == "equals":
             matched = value == rule.value
+            return matched, str(value) if matched else None
+        if rule.operator == "in":
+            matched = value in rule.values
             return matched, str(value) if matched else None
         if rule.operator == "startswith":
             if value is None:

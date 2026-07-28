@@ -2,6 +2,23 @@
 
 This is a living list of work that has been intentionally postponed. Add items here whenever a design discussion concludes that something may be useful later but is not required immediately.
 
+## Static inference and evaluation
+
+- [x] Add a leakage-safe subsystem benchmark that removes subsystem labels
+  before inference.
+- [x] Infer compartment-specific transport from stoichiometry and named model
+  compartments.
+- [x] Validate annotation-free local BiGG-style identifiers against a
+  user-supplied official MetaNetX cross-reference file.
+- [x] Add initial curated enzyme-name rules for glycolysis, the pentose
+  phosphate pathway, and the TCA cycle.
+- [ ] Expand conservative reaction-name and metabolite-signature rules to
+  additional pathway families.
+- [ ] Distinguish broad external reference-map membership from model-local
+  pathway membership.
+- [ ] Evaluate the completed inference rules on an independent labeled model
+  not used for rule development.
+
 ## External data access
 
 - [ ] Review and send the enquiries in `docs/data-source-contacts.md`.
@@ -104,6 +121,11 @@ This is a living list of work that has been intentionally postponed. Add items h
   changes alone.
 - [ ] Obtain independent biological review of the curated benchmark and expand
   its predeclared positive and negative examples before final thesis reporting.
+- [ ] Create a holdout benchmark that was not used to construct the v0.5.3
+  exact reaction-ID mappings; do not present the development-score increase as
+  independent validation.
+- [ ] Decide after holdout testing whether exact-ID mappings are enabled by
+  default or selected through an optional evidence profile.
 - [ ] Compare the same model set under different semantic evidence modes:
   model-only, default redistributable enrichment, and default enrichment plus
   KEGG.

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Iterable
 
 from semgem.enrichment.base import EnrichmentProvider
+from semgem.enrichment.identity import infer_identity_inputs
 from semgem.evidence.engine import (
     EvidenceScorer,
     ExternalEvidenceGenerator,
@@ -40,14 +41,19 @@ class SemanticPipeline:
         self,
         database,
         providers: Iterable[EnrichmentProvider],
+        include_subsystem_evidence: bool = True,
     ) -> PipelineSummary:
         provider_summaries = []
         all_annotations = database.annotation_inputs()
+        provider_inputs = [
+            *all_annotations,
+            *infer_identity_inputs(database, all_annotations),
+        ]
 
         for provider in providers:
             relevant = [
                 annotation
-                for annotation in all_annotations
+                for annotation in provider_inputs
                 if annotation.source in provider.annotation_sources
             ]
             run_id = database.start_enrichment_run(
@@ -112,7 +118,10 @@ class SemanticPipeline:
         candidates = ModelEvidenceGenerator(
             self.policy,
             self.registry,
-        ).generate(database)
+        ).generate(
+            database,
+            include_subsystem_evidence=include_subsystem_evidence,
+        )
         candidates.extend(
             ExternalEvidenceGenerator(self.registry, self.policy).generate(database)
         )

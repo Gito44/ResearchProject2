@@ -15,6 +15,14 @@ The current version can:
 - resolve SBO annotations against a packaged, licensed ontology snapshot;
 - bridge reaction identities through user-supplied official MetaNetX and Rhea
   cross-reference files;
+- classify a small, transparent set of central-metabolism community reaction
+  IDs through exact equality rules;
+- infer translocation and compartment-specific transport from reaction
+  stoichiometry and the model's named compartments;
+- treat annotation-free BiGG-style local reaction IDs as lookup candidates
+  that must be confirmed by a user-supplied MetaNetX table;
+- recognize strict KEGG, Rhea, and MetaNetX accessions used directly as local
+  reaction IDs without fabricating source annotations;
 - optionally resolve KEGG reaction-to-pathway relationships at runtime;
 - normalize external labels to provider-independent canonical concepts;
 - query models, scoped entities, annotations, concepts, and supporting evidence
@@ -112,6 +120,22 @@ cross-referenced records may retain restrictions from their original sources.
 Users should retain provenance and review the applicable source terms before
 redistributing enriched catalogs.
 
+Experimental exact community-ID rules are enabled in v0.6.0. Their scope,
+provenance, and evaluation limitations are documented in
+[`docs/static-identifier-mappings.md`](docs/static-identifier-mappings.md).
+
+Subsystem evidence can be disabled for inference evaluation:
+
+```bash
+semgem build path/to/model.xml \
+    --out outputs/no_subsystem_evidence.sqlite \
+    --ignore-subsystems \
+    --no-kegg
+```
+
+This preserves subsystem data in the raw model tables but prevents the
+evidence engine from using those labels when generating conclusions.
+
 Directory discovery accepts `.xml`, `.xml.gz`, `.sbml`, and `.sbml.gz` files,
 ignores unrelated files, sorts the discovered paths, and avoids importing the
 same file twice when inputs overlap. Files and directories can be mixed in the
@@ -170,7 +194,8 @@ pytest
 
 The current suite covers extraction, canonical label normalization, fixed
 evidence generation, scoring, SBO hierarchy parsing, KEGG response parsing,
-MetaNetX/Rhea cross-reference parsing, provider caching, relational insertion,
+MetaNetX/Rhea cross-reference parsing, static transport inference, provider
+caching, relational insertion,
 annotation normalization, duplicate detection, rollback, deletion, entity-type
 validation, and file hashing.
 
@@ -237,6 +262,7 @@ Its intended contribution is a consistent, evidence-preserving interface over he
 - [External enrichment design](docs/enrichment-design.md)
 - [Provisional concept inventory and smoke evaluation](docs/concept-inventory.md)
 - [Provisional biological and multi-model evaluation](docs/evaluation-report.md)
+- [Experimental exact reaction-ID mappings](docs/static-identifier-mappings.md)
 - [Future work](docs/future_work.md)
 - [Living TODO list](docs/todo.md)
 - [External data-source contact plan](docs/data-source-contacts.md)

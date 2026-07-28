@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS models (
     original_id TEXT NOT NULL UNIQUE,
     name TEXT,
     source_file TEXT NOT NULL,
-    content_hash TEXT NOT NULL
+    content_hash TEXT NOT NULL,
+    compartments_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS entities (
@@ -184,4 +185,4 @@ CREATE TABLE IF NOT EXISTS concept_evidence (
     CHECK (weight >= 0.0 AND weight <= 1.0)
 );
 
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;

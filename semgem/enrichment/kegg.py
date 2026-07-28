@@ -132,7 +132,11 @@ class KeggProvider(EnrichmentProvider):
                         evidence=(
                             EntityAssertionEvidenceRecord(
                                 provider=self.name,
-                                evidence_type="source_model_annotation",
+                                evidence_type=(
+                                    "source_model_annotation"
+                                    if annotation.annotation_id is not None
+                                    else "model_identifier_pattern"
+                                ),
                                 retrieval_method=(
                                     "catalog_cache"
                                     if reaction_id in cached

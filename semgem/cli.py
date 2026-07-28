@@ -202,6 +202,14 @@ def build(
         dir_okay=False,
         readable=True,
     ),
+    use_subsystems: bool = typer.Option(
+        True,
+        "--use-subsystems/--ignore-subsystems",
+        help=(
+            "Use source-model subsystem labels as semantic evidence. "
+            "Disable this when evaluating static inference."
+        ),
+    ),
 ):
     """
     Build or extend one semantic catalog from one or more SBML models.
@@ -243,6 +251,7 @@ def build(
             pipeline_summary = SemanticPipeline(registry, policy).run(
                 database,
                 providers,
+                include_subsystem_evidence=use_subsystems,
             )
     except (
         DuplicateModelError,
