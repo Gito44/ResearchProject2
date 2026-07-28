@@ -32,7 +32,7 @@ excluded where possible.
 The benchmark is closed-world only for its listed reactions and concepts. It
 does not imply that reactions have no valid memberships outside that scope.
 
-### Model/SBO result
+### Default offline pathway-focused result
 
 | System | Precision (95% CI) | Recall (95% CI) | F1 | TP | FP | FN |
 |---|---:|---:|---:|---:|---:|---:|
@@ -55,6 +55,13 @@ Per-model SemGEM recall was:
 This result supports the claim that SemGEM reduces terminology-specific work,
 but also demonstrates that it cannot recover missing pathway semantics from a
 model with no suitable identity or pathway annotations.
+
+An explicit source-ablation run using
+`evaluation.evaluate_benchmark --exclude-source sbo` produced the identical
+result (precision 1.000, recall 0.788, F1 0.882). SBO evidence contributed to
+one scoped ATP-maintenance conclusion, but that conclusion also had sufficient
+model evidence. Broad SBO reaction typing therefore does not inflate this
+pathway/exchange/objective benchmark.
 
 ### Runtime KEGG result
 
@@ -151,6 +158,70 @@ carrying KEGG reaction identifiers. This provides quantitative support for
 prioritizing a redistributable Rhea or MetaNetX identity bridge: it could reach
 far more of the currently pathway-unclassified cohort than KEGG-only
 enrichment.
+
+## BioModels repository check
+
+Three public BioModels GEMs outside the BiGG download workflow were imported:
+
+| BioModels accession | Organism/model | Reactions | Subsystems | Reaction annotations | Pathway conclusions |
+|---|---|---:|---:|---:|---:|
+| MODEL1507180050 | *Pichia pastoris* PpaMBEL1254 | 1,254 | 0 | 0 | 0 |
+| MODEL1507180060 | *E. coli* iJR904 | 1,075 | 0 | 0 | 0 |
+| MODEL1507180064 | *Zea mays* iRS1563 | 1,785 | 0 | 0 | 0 |
+
+The models still allowed limited convention-based conclusions: iJR904 yielded
+exchange, objective, biomass, ATP-maintenance, and specific exchange concepts;
+iRS1563 yielded exchange, objective, and biomass concepts; PpaMBEL1254 yielded
+only its objective. None supplied the identity or pathway metadata required for
+pathway recovery. This confirms that the missing-pathway problem is not only a
+consequence of using BiGG-derived models.
+
+MODEL1507180055 (mouse iMM1415) was also attempted, but COBRApy rejected a
+metabolite identifier containing a vertical-tab control character. SemGEM did
+not modify the repository model silently. This is an upstream
+SBML/interoperability limitation to report separately from semantic coverage.
+
+## Preliminary MetaNetX/Rhea bridge experiment
+
+The v0.5.2 prototype resolves only model-relevant entries from user-supplied
+official `reac_xref.tsv` and `rhea2xrefs.tsv` files. It does not bundle either
+full dataset. On iJO1366:
+
+- the original model contained 755 KEGG reaction annotations;
+- MetaNetX/Rhea bridging exposed 821 distinct KEGG reaction identities;
+- 1,085 MetaCyc and 499 Reactome reaction identities were also connected;
+- the offline identity stage took approximately 7 seconds; and
+- the batched runtime KEGG stage resolved 822 reaction identifiers in
+  approximately 219 seconds.
+
+Unique pathway-covered reactions rose from 1,463/2,583 (56.6%) to
+1,480/2,583 (57.3%). The small unique-coverage gain is expected because iJO1366
+already has extensive subsystem labels. The enriched catalog nevertheless
+added substantially broader pathway assignments and independent external
+support. Models without subsystem labels are required to measure the bridge's
+main intended benefit.
+
+On iYS1720, which has 3,357 reactions and no subsystem labels, the full bridge
+plus runtime pathway workflow increased unique pathway coverage from zero to
+738 reactions (22.0%). This demonstrates a substantial coverage gain in the
+target missing-subsystem case. Direct KEGG annotations supported 676 of those
+reactions (20.1% of the model); MetaNetX/Rhea bridging added 62 reactions with
+pathway conclusions that had no direct KEGG or model evidence, raising coverage
+by 1.9 percentage points. The larger value of the bridges in this model is
+cross-checking: MetaNetX supported 737 pathway-covered reactions and Rhea
+supported 603.
+
+These figures do not establish model-local accuracy:
+reference pathway maps include shared reactions and produced potentially broad
+labels such as carbon fixation. The curated benchmark must therefore evaluate
+provider-derived memberships separately from raw coverage.
+
+Provider-specific evidence remains separate after scoring. Of the stored
+pathway conclusions, 1,245 in iJO1366 and 1,241 in iYS1720 had support from at
+least two of model, direct KEGG, MetaNetX-bridged, or Rhea-bridged evidence.
+This makes later agreement and consensus analysis possible. The provisional
+v0.5.2 scorer currently accepts either identity bridge at weight 0.85; whether
+agreement should alter confidence remains an evaluation question.
 
 ## Performance
 

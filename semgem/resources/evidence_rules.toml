@@ -96,6 +96,16 @@ source = "kegg"
 description = "A runtime KEGG pathway label matched a canonical concept."
 weight = 0.90
 
+[evidence.metanetx_bridged_pathway_label_match]
+source = "metanetx"
+description = "A model reaction mapped through MNXref to a KEGG reaction whose runtime pathway label matched a canonical concept."
+weight = 0.85
+
+[evidence.rhea_bridged_pathway_label_match]
+source = "rhea"
+description = "A model reaction mapped through Rhea to a KEGG reaction whose runtime pathway label matched a canonical concept."
+weight = 0.85
+
 [evidence.external_term_label_match]
 source = "external"
 description = "An external term label matched a canonical concept."

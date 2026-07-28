@@ -530,6 +530,44 @@ def test_external_label_evidence_targets_canonical_concept():
     ]
 
 
+@pytest.mark.parametrize(
+    ("provider", "evidence_code"),
+    [
+        ("metanetx", "metanetx_bridged_pathway_label_match"),
+        ("rhea", "rhea_bridged_pathway_label_match"),
+    ],
+)
+def test_identity_bridges_preserve_provider_specific_pathway_evidence(
+    provider,
+    evidence_code,
+):
+    concepts, policy = loaded_policy()
+    database = StubDatabase(
+        external_rows=[
+            {
+                "entity_id": 10,
+                "entity_type": "reaction",
+                "assertion_id": 2,
+                "relationship_id": 3,
+                "distance": 2,
+                "predicate": "belongs_to_pathway",
+                "term_name": "Glycolysis / Gluconeogenesis",
+                "provider": provider,
+                "source_annotation_id": 4,
+            }
+        ]
+    )
+
+    candidates = ExternalEvidenceGenerator(
+        ConceptRegistry(concepts),
+        policy,
+    ).generate(database)
+
+    assert len(candidates) == 1
+    assert candidates[0].evidence_code == evidence_code
+    assert candidates[0].source == provider
+
+
 def test_scorer_deduplicates_codes_caps_scores_and_rejects_weak_candidates():
     _, policy = loaded_policy()
     strong = CandidateEvidence(

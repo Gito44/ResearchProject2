@@ -2,6 +2,8 @@ import pytest
 
 from semgem.core.records import AnnotationInputRecord
 from semgem.enrichment.kegg import KeggProvider
+from semgem.enrichment.metanetx import MetaNetXProvider
+from semgem.enrichment.rhea import RheaProvider
 from semgem.enrichment.sbo import SBOProvider
 
 
@@ -147,6 +149,12 @@ def test_kegg_provider_reuses_cached_reaction_without_network_lookup():
             assert source == "kegg.reaction"
             return {"R00771"}
 
+        @staticmethod
+        def external_identifiers_with_relationship(source, predicate):
+            assert source == "kegg.reaction"
+            assert predicate == "belongs_to_pathway"
+            return {"R00771"}
+
     def unexpected_request(path):
         raise AssertionError(f"Unexpected KEGG request: {path}")
 
@@ -176,6 +184,110 @@ def test_kegg_provider_normalizes_prefixed_reaction_identifier():
 
     assert requested_paths == ["/link/pathway/rn:R00771"]
     assert result.requested_identifiers == ("R00771",)
+
+
+def test_kegg_provider_batches_catalog_reactions_created_by_other_providers():
+    class Cache:
+        @staticmethod
+        def external_identifiers(source):
+            assert source == "kegg.reaction"
+            return {"R00001", "R00002"}
+
+        @staticmethod
+        def external_identifiers_with_relationship(source, predicate):
+            return set()
+
+    requested_paths = []
+
+    def request(path):
+        requested_paths.append(path)
+        if path.startswith("/link/pathway/"):
+            return (
+                "rn:R00001\tpath:map00010\n"
+                "rn:R00002\tpath:map00020\n"
+            )
+        return (
+            "ENTRY       map00010                    Pathway\n"
+            "NAME        Glycolysis / Gluconeogenesis\n"
+            "///\n"
+            "ENTRY       map00020                    Pathway\n"
+            "NAME        Citrate cycle (TCA cycle)\n"
+            "///\n"
+        )
+
+    provider = KeggProvider(request=request)
+    provider.use_catalog_cache(Cache())
+    result = provider.enrich([], run_id=3)
+
+    assert requested_paths[0] == "/link/pathway/rn:R00001+rn:R00002"
+    assert result.requested_identifiers == ("R00001", "R00002")
+    assert {
+        (item.subject_identifier, item.object_identifier)
+        for item in result.relationships
+    } == {
+        ("R00001", "map00010"),
+        ("R00002", "map00020"),
+    }
+
+
+def test_metanetx_provider_bridges_model_annotation_to_shared_crossrefs(tmp_path):
+    xref_path = tmp_path / "reac_xref.tsv"
+    xref_path.write_text(
+        """### MetaNetX/MNXref reconciliation ###
+#VERSION: 4.6
+bigg.reaction:PGI\tMNXR1\tphosphoglucose isomerase
+kegg.reaction:R00771\tMNXR1\tphosphoglucose isomerase
+rhea:15905\tMNXR1\tphosphoglucose isomerase
+bigg.reaction:OTHER\tMNXR2\tother
+""",
+        encoding="utf-8",
+    )
+    result = MetaNetXProvider(xref_path).enrich(
+        [AnnotationInputRecord(1, 10, "bigg.reaction", "PGI")],
+        run_id=4,
+    )
+
+    assert result.resource_version == "MNXref 4.6"
+    assert result.requested_identifiers == ("bigg.reaction:PGI",)
+    assert result.resolved_identifiers == ("bigg.reaction:PGI",)
+    assert result.assertions[0].term_identifier == "MNXR1"
+    assert {
+        (item.object_source, item.object_identifier)
+        for item in result.relationships
+    } == {
+        ("bigg.reaction", "PGI"),
+        ("kegg.reaction", "R00771"),
+        ("rhea", "15905"),
+    }
+
+
+def test_rhea_provider_normalizes_directional_id_and_exports_kegg_bridge(tmp_path):
+    xref_path = tmp_path / "rhea2xrefs.tsv"
+    xref_path.write_text(
+        """RHEA_ID\tDIRECTION\tMASTER_ID\tID\tDB
+15904\tUN\t15904\t5.3.1.9\tEC
+15905\tLR\t15904\tR00771\tKEGG_REACTION
+15906\tRL\t15904\tGLUCOSE-6-P-ISOMERASE-RXN\tMETACYC
+15907\tBI\t15904\tR-HSA-123\tREACTOME
+20000\tUN\t20000\tR00001\tKEGG_REACTION
+""",
+        encoding="utf-8",
+    )
+    result = RheaProvider(xref_path).enrich(
+        [AnnotationInputRecord(2, 20, "rhea", "RHEA:15905")],
+        run_id=5,
+    )
+
+    assert result.resolved_identifiers == ("15905",)
+    assert result.assertions[0].term_identifier == "15904"
+    assert {
+        (item.object_source, item.object_identifier)
+        for item in result.relationships
+    } == {
+        ("kegg.reaction", "R00771"),
+        ("metacyc.reaction", "GLUCOSE-6-P-ISOMERASE-RXN"),
+        ("reactome.reaction", "R-HSA-123"),
+    }
 
 
 @pytest.mark.parametrize("requests_per_second", [0, -1])

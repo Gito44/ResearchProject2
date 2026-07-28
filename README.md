@@ -13,6 +13,8 @@ The current version can:
 - preserve existing model annotations as individually queryable identifiers;
 - store multiple models in one relational SQLite catalog;
 - resolve SBO annotations against a packaged, licensed ontology snapshot;
+- bridge reaction identities through user-supplied official MetaNetX and Rhea
+  cross-reference files;
 - optionally resolve KEGG reaction-to-pathway relationships at runtime;
 - normalize external labels to provider-independent canonical concepts;
 - query models, scoped entities, annotations, concepts, and supporting evidence
@@ -82,6 +84,34 @@ user's local catalog; users remain responsible for complying with KEGG terms
 and should not redistribute KEGG-derived catalogs without appropriate
 permission.
 
+MetaNetX and Rhea identity bridging is enabled by passing official downloaded
+cross-reference files. SemGEM deliberately does not bundle these datasets:
+
+```bash
+semgem build path/to/models/ \
+    --out outputs/semantic_catalog.sqlite \
+    --metanetx-xref path/to/reac_xref.tsv \
+    --rhea-xref path/to/rhea2xrefs.tsv \
+    --kegg
+```
+
+The identity providers run before KEGG, allowing model BiGG, MetaNetX, or Rhea
+annotations to expose additional KEGG reaction identifiers. KEGG then obtains
+pathway relationships at runtime in batches. MetaNetX and Rhea improve identity
+reach; they do not themselves imply pathway membership.
+
+Official sources:
+
+- MetaNetX `reac_xref.tsv`:
+  `https://www.metanetx.org/mnxdoc/mnxref.html`
+- Rhea `rhea2xrefs.tsv`:
+  `https://www.rhea-db.org/help/download`
+
+Rhea data is CC BY 4.0. MetaNetX is generally CC BY 4.0 but warns that
+cross-referenced records may retain restrictions from their original sources.
+Users should retain provenance and review the applicable source terms before
+redistributing enriched catalogs.
+
 Directory discovery accepts `.xml`, `.xml.gz`, `.sbml`, and `.sbml.gz` files,
 ignores unrelated files, sorts the discovered paths, and avoids importing the
 same file twice when inputs overlap. Files and directories can be mixed in the
@@ -140,8 +170,9 @@ pytest
 
 The current suite covers extraction, canonical label normalization, fixed
 evidence generation, scoring, SBO hierarchy parsing, KEGG response parsing,
-provider caching, relational insertion, annotation normalization, duplicate
-detection, rollback, deletion, entity-type validation, and file hashing.
+MetaNetX/Rhea cross-reference parsing, provider caching, relational insertion,
+annotation normalization, duplicate detection, rollback, deletion, entity-type
+validation, and file hashing.
 
 ## Architecture
 
@@ -154,7 +185,9 @@ typed extraction records
     ↓
 raw model baseline
     ↓
-bulk SBO / optional KEGG resolution
+SBO / optional MetaNetX and Rhea identity resolution
+    ↓
+optional batched KEGG pathway resolution
     ↓
 fixed candidate evidence
     ↓
@@ -213,8 +246,9 @@ Its intended contribution is a consistent, evidence-preserving interface over he
 - The expanded reaction-level concept vocabulary remains provisional and has
   not yet undergone the thesis-scale biological evaluation.
 - Confidence scores use simple additive rule weights and are not calibrated probabilities.
-- KEGG pathway coverage depends on model KEGG annotations, network access, and
-  KEGG availability; SBO and KEGG are the only implemented providers.
+- KEGG pathway coverage depends on usable reaction identities, network access,
+  and KEGG availability. MetaNetX/Rhea can bridge more reaction identities,
+  but models without identity annotations still cannot be pathway-enriched.
 - Dedicated pathway listing/filtering commands are not yet implemented;
   canonical pathway concepts remain searchable through existing queries.
 - The current SQLite schema is regenerated during development; schema migrations are not supported.

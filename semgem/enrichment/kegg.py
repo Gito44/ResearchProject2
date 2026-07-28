@@ -38,10 +38,17 @@ class KeggProvider(EnrichmentProvider):
         self._request_override = request
         self._minimum_interval = 1.0 / requests_per_second
         self._last_request = 0.0
-        self._cached_reactions: set[str] = set()
+        self._catalog_reactions: set[str] = set()
+        self._cached_pathway_reactions: set[str] = set()
 
     def use_catalog_cache(self, database) -> None:
-        self._cached_reactions = database.external_identifiers("kegg.reaction")
+        self._catalog_reactions = database.external_identifiers("kegg.reaction")
+        self._cached_pathway_reactions = (
+            database.external_identifiers_with_relationship(
+                "kegg.reaction",
+                "belongs_to_pathway",
+            )
+        )
 
     def enrich(
         self,
@@ -60,25 +67,30 @@ class KeggProvider(EnrichmentProvider):
             )
             by_identifier.setdefault(identifier, []).append(annotation)
 
+        requested_ids = set(by_identifier) | self._catalog_reactions
         reaction_pathways: dict[str, set[str]] = {}
         resolved = []
         unresolved = []
         warnings = []
 
-        cached = set(by_identifier) & self._cached_reactions
+        cached = requested_ids & self._cached_pathway_reactions
         for identifier in sorted(cached):
             resolved.append(identifier)
             reaction_pathways[identifier] = set()
 
-        for identifier in sorted(set(by_identifier) - cached):
+        uncached = sorted(requested_ids - cached)
+        for batch in self._batches(uncached, 10):
             try:
-                response = self._request(f"/link/pathway/rn:{identifier}")
+                query = "+".join(f"rn:{identifier}" for identifier in batch)
+                response = self._request(f"/link/pathway/{query}")
             except (HTTPError, URLError, TimeoutError, OSError) as error:
-                unresolved.append(identifier)
-                warnings.append(f"{identifier}: {error}")
+                unresolved.extend(batch)
+                warnings.append(f"{', '.join(batch)}: {error}")
                 continue
-            resolved.append(identifier)
-            reaction_pathways[identifier] = self._parse_link_response(response)
+            parsed = self._parse_link_response(response)
+            for identifier in batch:
+                resolved.append(identifier)
+                reaction_pathways[identifier] = parsed.get(identifier, set())
 
         pathway_ids = sorted(
             {
@@ -100,9 +112,10 @@ class KeggProvider(EnrichmentProvider):
         relationships = []
         assertions = []
 
-        for reaction_id, occurrences in sorted(by_identifier.items()):
+        for reaction_id in sorted(requested_ids):
             if reaction_id not in resolved:
                 continue
+            occurrences = by_identifier.get(reaction_id, ())
             terms[("kegg.reaction", reaction_id)] = ExternalTermRecord(
                 source="kegg.reaction",
                 identifier=reaction_id,
@@ -168,7 +181,7 @@ class KeggProvider(EnrichmentProvider):
             terms=tuple(terms[key] for key in sorted(terms)),
             relationships=tuple(relationships),
             assertions=tuple(assertions),
-            requested_identifiers=tuple(sorted(by_identifier)),
+            requested_identifiers=tuple(sorted(requested_ids)),
             resolved_identifiers=tuple(resolved),
             unresolved_identifiers=tuple(unresolved),
             warnings=tuple(warnings),
@@ -186,15 +199,16 @@ class KeggProvider(EnrichmentProvider):
         return body
 
     @staticmethod
-    def _parse_link_response(text: str) -> set[str]:
-        pathways = set()
+    def _parse_link_response(text: str) -> dict[str, set[str]]:
+        pathways: dict[str, set[str]] = {}
         for line in text.splitlines():
             parts = line.split("\t")
             if len(parts) != 2:
                 continue
+            reaction = parts[0].removeprefix("rn:")
             pathway = parts[1].removeprefix("path:")
             if pathway.startswith("map"):
-                pathways.add(pathway)
+                pathways.setdefault(reaction, set()).add(pathway)
         return pathways
 
     @staticmethod

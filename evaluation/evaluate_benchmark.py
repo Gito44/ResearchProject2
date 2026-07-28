@@ -82,7 +82,12 @@ def load_benchmark(path: Path):
     return data, scoped, benchmark_entities, expected
 
 
-def evaluate(database_path: Path, benchmark_path: Path, concepts_path: Path):
+def evaluate(
+    database_path: Path,
+    benchmark_path: Path,
+    concepts_path: Path,
+    excluded_sources: set[str] | None = None,
+):
     _, scoped, benchmark_entities, expected = load_benchmark(benchmark_path)
     concepts = load_concepts(concepts_path)
     connection = sqlite3.connect(database_path)
@@ -106,20 +111,28 @@ def evaluate(database_path: Path, benchmark_path: Path, concepts_path: Path):
             f"{missing_entities[:5]}"
         )
 
+    excluded_sources = excluded_sources or set()
+    predicted_rows = connection.execute(
+        """
+        SELECT m.original_id AS model,
+               e.original_id AS reaction_id,
+               sc.concept_name,
+               GROUP_CONCAT(DISTINCT ce.source) AS evidence_sources
+        FROM semantic_concepts AS sc
+        JOIN entities AS e ON e.id = sc.entity_id
+        JOIN models AS m ON m.id = e.model_id
+        LEFT JOIN concept_evidence AS ce ON ce.concept_id = sc.id
+        GROUP BY sc.id
+        """
+    )
     predicted = {
         (row["model"], row["reaction_id"], row["concept_name"])
-        for row in connection.execute(
-            """
-            SELECT m.original_id AS model,
-                   e.original_id AS reaction_id,
-                   sc.concept_name
-            FROM semantic_concepts AS sc
-            JOIN entities AS e ON e.id = sc.entity_id
-            JOIN models AS m ON m.id = e.model_id
-            """
-        )
+        for row in predicted_rows
         if (row["model"], row["reaction_id"]) in benchmark_entities
         and row["concept_name"] in scoped
+        and (
+            set((row["evidence_sources"] or "").split(",")) - excluded_sources
+        )
     }
 
     # Portable naive baseline: one exact preferred-label comparison against the
@@ -170,6 +183,7 @@ def evaluate(database_path: Path, benchmark_path: Path, concepts_path: Path):
         "by_concept": by_concept,
         "false_positives": false_positives,
         "false_negatives": false_negatives,
+        "excluded_sources": sorted(excluded_sources),
     }
     connection.close()
     return result
@@ -189,12 +203,22 @@ def main() -> None:
         default=Path(__file__).parents[1] / "semgem/resources/concepts.toml",
     )
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--exclude-source",
+        action="append",
+        default=[],
+        help=(
+            "Ignore conclusions supported only by this evidence source. "
+            "May be repeated."
+        ),
+    )
     arguments = parser.parse_args()
 
     result = evaluate(
         arguments.database,
         arguments.benchmark,
         arguments.concepts,
+        set(arguments.exclude_source),
     )
     if arguments.json:
         print(json.dumps(result, indent=2))

@@ -685,6 +685,26 @@ class SemanticDatabase:
             ).fetchall()
         }
 
+    def external_identifiers_with_relationship(
+        self,
+        source: str,
+        predicate: str,
+    ) -> set[str]:
+        return {
+            row[0]
+            for row in self.conn.execute(
+                """
+                SELECT DISTINCT subject.identifier
+                FROM external_terms AS subject
+                JOIN external_term_relationships AS relationship
+                  ON relationship.subject_term_id = subject.id
+                WHERE subject.source = ?
+                  AND relationship.predicate = ?
+                """,
+                (source, predicate),
+            ).fetchall()
+        }
+
     def evidence_entity_rows(self) -> list[dict[str, Any]]:
         rows = self.conn.execute(
             """

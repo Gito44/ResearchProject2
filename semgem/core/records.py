@@ -102,7 +102,7 @@ class EnrichmentAssertionRecord:
 
 @dataclass(frozen=True)
 class AnnotationInputRecord:
-    annotation_id: int
+    annotation_id: int | None
     entity_id: int
     source: str
     identifier: str

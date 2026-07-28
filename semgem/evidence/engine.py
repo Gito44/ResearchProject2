@@ -163,6 +163,10 @@ class ExternalEvidenceGenerator:
             )
         if provider == "kegg" and predicate == "belongs_to_pathway":
             return "kegg_pathway_label_match"
+        if provider == "metanetx" and predicate == "belongs_to_pathway":
+            return "metanetx_bridged_pathway_label_match"
+        if provider == "rhea" and predicate == "belongs_to_pathway":
+            return "rhea_bridged_pathway_label_match"
         return "external_term_label_match"
 
 

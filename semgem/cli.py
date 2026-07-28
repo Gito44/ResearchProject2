@@ -10,7 +10,12 @@ from semgem.database.sqlite import (
     ModelIdentityConflictError,
     SemanticDatabase,
 )
-from semgem.enrichment import KeggProvider, SBOProvider
+from semgem.enrichment import (
+    KeggProvider,
+    MetaNetXProvider,
+    RheaProvider,
+    SBOProvider,
+)
 from semgem.evidence.concepts import ConceptRegistry
 from semgem.evidence.load_rules import load_concepts, load_evidence_policy
 from semgem.pipeline import SemanticPipeline
@@ -173,6 +178,30 @@ def build(
         dir_okay=False,
         readable=True,
     ),
+    metanetx_xref: Path | None = typer.Option(
+        None,
+        "--metanetx-xref",
+        help=(
+            "Official MNXref reac_xref.tsv file used to bridge reaction "
+            "identifiers. The dataset is not bundled with SemGEM."
+        ),
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    rhea_xref: Path | None = typer.Option(
+        None,
+        "--rhea-xref",
+        help=(
+            "Official Rhea rhea2xrefs.tsv file used to bridge reaction "
+            "identifiers. The dataset is not bundled with SemGEM."
+        ),
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
 ):
     """
     Build or extend one semantic catalog from one or more SBML models.
@@ -205,6 +234,10 @@ def build(
                 counts = import_model(model_path, database)
                 imported.append((model_path, counts))
             providers = [SBOProvider(sbo_path)]
+            if metanetx_xref is not None:
+                providers.append(MetaNetXProvider(metanetx_xref))
+            if rhea_xref is not None:
+                providers.append(RheaProvider(rhea_xref))
             if kegg:
                 providers.append(KeggProvider())
             pipeline_summary = SemanticPipeline(registry, policy).run(

@@ -107,6 +107,11 @@ This is a living list of work that has been intentionally postponed. Add items h
 - [ ] Compare the same model set under different semantic evidence modes:
   model-only, default redistributable enrichment, and default enrichment plus
   KEGG.
+- [x] Confirm through source ablation that broad SBO evidence does not inflate
+  the current pathway/exchange/objective benchmark.
+- [x] Test non-BiGG BioModels GEMs and record that three older repository
+  models lacked reaction annotations and subsystems; record one COBRApy
+  interoperability failure without silently repairing the source model.
 - [ ] Measure and compare reaction/pathway coverage, agreement between sources,
   false positives, false negatives, unresolved entities, and enrichment runtime.
 - [ ] Report cases where KEGG adds useful classifications, changes an existing
@@ -127,8 +132,12 @@ This is a living list of work that has been intentionally postponed. Add items h
 
 - [ ] Evaluate whether BiGG and Escher maps provide sufficiently reliable,
   redistributable pathway evidence to justify dedicated providers.
-- [ ] Evaluate Rhea as an additional curated reaction-identity provider after
-  the SBO/KEGG v1 workflow is complete.
+- [x] Implement provisional MetaNetX and Rhea reaction-identity bridges using
+  user-supplied official cross-reference files.
+- [ ] Evaluate MetaNetX/Rhea pathway-coverage gains across the full cohort and
+  decide whether downloads should remain explicit or use a managed local cache.
+- [ ] Add a Reactome or MetaCyc pathway provider if their reaction
+  cross-references prove useful and licensing permits redistribution.
 
 ## Deployment and licensing
 
