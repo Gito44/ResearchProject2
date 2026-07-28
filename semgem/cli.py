@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 import typer
 
 from semgem.io.load_model import calculate_file_hash, load_sbml_model
@@ -9,8 +10,10 @@ from semgem.database.sqlite import (
     ModelIdentityConflictError,
     SemanticDatabase,
 )
-from semgem.evidence.engine import EvidenceEngine
-from semgem.evidence.load_rules import load_concept_definitions
+from semgem.enrichment import KeggProvider, SBOProvider
+from semgem.evidence.concepts import ConceptRegistry
+from semgem.evidence.load_rules import load_concepts, load_evidence_policy
+from semgem.pipeline import SemanticPipeline
 from semgem.query import (
     ConceptNotFoundError,
     EntityNotFoundError,
@@ -62,10 +65,14 @@ def discover_model_paths(input_paths: list[Path]) -> list[Path]:
 def import_model(
     model_path: Path,
     database: SemanticDatabase,
-    evidence_engine: EvidenceEngine,
 ) -> dict[str, int]:
-    """Extract, classify, and import one SBML model into an open catalog."""
+    """Extract and import one raw SBML model baseline into an open catalog."""
     model = load_sbml_model(model_path)
+    if not str(model.id or "").strip():
+        raise ValueError(
+            f"Model file '{model_path}' has no usable SBML model ID. "
+            "SemGEM requires a source model ID for safe multi-model identity."
+        )
 
     extractor = Extractor(model)
     reactions = extractor.extract_reactions()
@@ -73,8 +80,6 @@ def import_model(
     genes = extractor.extract_genes()
     reaction_metabolites = extractor.extract_stoichiometry()
     reaction_genes = extractor.extract_reaction_genes()
-
-    semantic_concepts = evidence_engine.classify_reactions(reactions)
 
     database.import_model(
         model=model,
@@ -85,7 +90,6 @@ def import_model(
         genes=genes,
         stoichiometry=reaction_metabolites,
         reaction_genes=reaction_genes,
-        concepts=semantic_concepts,
     )
 
     return {
@@ -94,7 +98,6 @@ def import_model(
         "genes": len(genes),
         "reaction_metabolites": len(reaction_metabolites),
         "reaction_genes": len(reaction_genes),
-        "semantic_concepts": len(semantic_concepts),
     }
 
 
@@ -153,23 +156,61 @@ def build(
         "-o",
         help="SQLite semantic catalog to create or extend.",
     ),
+    kegg: bool | None = typer.Option(
+        None,
+        "--kegg/--no-kegg",
+        help=(
+            "Use optional KEGG REST enrichment. Requires internet access and "
+            "takes longer; users are responsible for complying with KEGG terms."
+        ),
+    ),
+    sbo_file: Path | None = typer.Option(
+        None,
+        "--sbo-file",
+        help="Alternative SBO OBO file (defaults to the packaged official file).",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
 ):
     """
     Build or extend one semantic catalog from one or more SBML models.
     """
-    rules_path = Path(__file__).parent / "resources" / "evidence_rules.toml"
-    concept_definitions = load_concept_definitions(rules_path)
-    evidence_engine = EvidenceEngine(concept_definitions)
+    resources_path = Path(__file__).parent / "resources"
+    concepts = load_concepts(resources_path / "concepts.toml")
+    policy = load_evidence_policy(
+        resources_path / "evidence_rules.toml",
+        concepts,
+    )
+    registry = ConceptRegistry(concepts)
     schema_path = Path(__file__).parent / "database" / "schema.sql"
+    sbo_path = sbo_file or resources_path / "sbo" / "SBO_OBO.obo"
     discovered_models = discover_model_paths(model_paths)
     imported = []
+    if kegg is None:
+        if sys.stdin.isatty():
+            kegg = typer.confirm(
+                "Enable recommended KEGG enrichment? "
+                "This requires internet access and takes longer",
+                default=False,
+            )
+        else:
+            kegg = False
 
     try:
         with SemanticDatabase(out, schema_path) as database:
             database.initialise()
             for model_path in discovered_models:
-                counts = import_model(model_path, database, evidence_engine)
+                counts = import_model(model_path, database)
                 imported.append((model_path, counts))
+            providers = [SBOProvider(sbo_path)]
+            if kegg:
+                providers.append(KeggProvider())
+            pipeline_summary = SemanticPipeline(registry, policy).run(
+                database,
+                providers,
+            )
     except (
         DuplicateModelError,
         IncompatibleSchemaError,
@@ -188,8 +229,22 @@ def build(
             f"  Reaction-metabolite links: {counts['reaction_metabolites']}"
         )
         typer.echo(f"  Reaction-gene links: {counts['reaction_genes']}")
-        typer.echo(f"  Semantic concepts: {counts['semantic_concepts']}")
     typer.echo(f"Models imported: {len(imported)}")
+    for provider in pipeline_summary.providers:
+        typer.echo(
+            f"{provider.provider.upper()} enrichment: {provider.status} "
+            f"(resolved {provider.resolved}/{provider.requested}, "
+            f"unresolved {provider.unresolved})"
+        )
+        for warning in provider.warnings:
+            typer.echo(f"  Warning: {warning}")
+    typer.echo(f"Candidate evidence evaluated: {pipeline_summary.candidate_count}")
+    typer.echo(f"Semantic concepts assigned: {pipeline_summary.concept_count}")
+    if not kegg:
+        typer.echo(
+            "KEGG enrichment was not used. Build a new catalogue with --kegg "
+            "for recommended online pathway enrichment."
+        )
 
 
 @app.command()
@@ -328,7 +383,10 @@ def concepts(
         return
 
     for result in results:
-        typer.echo(f"{result.name}\tconfidence={result.confidence:.3f}")
+        typer.echo(
+            f"{result.name}\t{result.preferred_label}\t"
+            f"confidence={result.confidence:.3f}"
+        )
 
 
 @app.command()
@@ -356,13 +414,16 @@ def explain(
     except (ConceptNotFoundError, EntityNotFoundError, ValueError) as error:
         query_error(error)
 
-    typer.echo(f"{result.name}\tconfidence={result.confidence:.3f}")
+    typer.echo(
+        f"{result.name}\t{result.preferred_label}\t"
+        f"confidence={result.confidence:.3f}"
+    )
     for evidence in result.evidence:
-        matched = evidence.matched_value or ""
+        observed = evidence.observed_value or ""
         typer.echo(
-            f"{evidence.evidence_type}\t"
-            f"field={evidence.target_field}\t"
-            f"matched={matched}\t"
+            f"{evidence.evidence_code}\t"
+            f"source={evidence.source}\t"
+            f"observed={observed}\t"
             f"weight={evidence.weight:.3f}\t"
-            f"{evidence.text}"
+            f"{evidence.explanation}"
         )

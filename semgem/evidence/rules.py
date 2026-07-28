@@ -1,39 +1,70 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-@dataclass
-class EvidenceRule:
-    evidence_type: str
+
+@dataclass(frozen=True)
+class ConceptDefinition:
+    concept_id: str
+    category: str
+    preferred_label: str
+    description: str = ""
+    synonyms: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class EvidenceDefinition:
+    code: str
+    source: str
+    description: str
+    weight: float
+
+
+@dataclass(frozen=True)
+class ModelEvidenceRule:
+    concept_id: str
+    evidence_code: str
+    entity_type: str
     target_field: str
     operator: str
-    weight: float
-    text: str
     value: Any = None
-    values: list[Any] = field(default_factory=list)
+    values: tuple[Any, ...] = ()
+    value_groups: tuple[tuple[Any, ...], ...] = ()
 
 
-@dataclass
-class ConceptDefinition:
-    name: str
-    entity_type: str
-    description: str
-    rules: list[EvidenceRule]
-    minimum_score: float = 0.5
+@dataclass(frozen=True)
+class EvidencePolicy:
+    default_threshold: float
+    definitions: dict[str, EvidenceDefinition]
+    model_rules: tuple[ModelEvidenceRule, ...]
+    concept_thresholds: dict[str, float] = field(default_factory=dict)
+
+    def threshold_for(self, concept_id: str) -> float:
+        return self.concept_thresholds.get(concept_id, self.default_threshold)
 
 
-@dataclass
-class EvidenceMatch:
-    evidence_type: str
-    target_field: str
-    matched_value: str | None
-    evidence_text: str
+@dataclass(frozen=True)
+class CandidateEvidence:
+    entity_id: int
+    concept_id: str
+    evidence_code: str
+    source: str
+    explanation: str
+    observed_value: str | None = None
+    annotation_id: int | None = None
+    assertion_id: int | None = None
+    relationship_id: int | None = None
+
+
+@dataclass(frozen=True)
+class ScoredEvidence:
+    candidate: CandidateEvidence
     weight: float
 
 
-@dataclass
-class SemanticConcept:
-    concept_name: str
-    entity_type: str
-    entity_id: str
+@dataclass(frozen=True)
+class ScoredConcept:
+    entity_id: int
+    concept_id: str
+    preferred_label: str
     confidence: float
-    evidence: list[EvidenceMatch]
+    evidence: tuple[ScoredEvidence, ...]

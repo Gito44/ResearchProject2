@@ -1,0 +1,564 @@
+[concepts."objective:model_objective"]
+category = "objective"
+preferred_label = "Model objective"
+description = "A reaction participating in the model objective."
+synonyms = ["objective reaction"]
+
+[concepts."objective:biomass_production"]
+category = "objective"
+preferred_label = "Biomass production"
+description = "A reaction representing biomass production or growth."
+synonyms = ["biomass reaction", "biomass"]
+
+[concepts."reaction_type:exchange_reaction"]
+category = "reaction_type"
+preferred_label = "Exchange reaction"
+description = "A reaction exchanging material with the model boundary."
+synonyms = ["exchange"]
+
+[concepts."reaction_type:biochemical_reaction"]
+category = "reaction_type"
+preferred_label = "Biochemical reaction"
+description = "A reaction representing a biochemical transformation."
+synonyms = ["biochemical transformation"]
+
+[concepts."reaction_type:translocation_reaction"]
+category = "reaction_type"
+preferred_label = "Translocation reaction"
+description = "A reaction moving material between compartments."
+synonyms = [
+    "transport reaction",
+    "translocation",
+    "transport",
+    "transport, inner membrane",
+    "transport, outer membrane",
+    "transport, outer membrane porin",
+]
+
+[concepts."reaction_type:demand_reaction"]
+category = "reaction_type"
+preferred_label = "Demand reaction"
+description = "A boundary reaction consuming a model metabolite."
+synonyms = ["demand"]
+
+[concepts."reaction_type:sink_reaction"]
+category = "reaction_type"
+preferred_label = "Sink reaction"
+description = "A boundary reaction allowing metabolite consumption or production."
+synonyms = ["sink"]
+
+[concepts."objective:atp_maintenance"]
+category = "objective"
+preferred_label = "ATP maintenance"
+description = "A reaction representing non-growth-associated ATP maintenance."
+synonyms = [
+    "ATP maintenance reaction",
+    "ATP maintenance requirement",
+    "non-growth-associated maintenance",
+]
+
+[concepts."exchange:oxygen"]
+category = "exchange"
+preferred_label = "Oxygen exchange"
+description = "An exchange reaction involving molecular oxygen."
+synonyms = ["oxygen", "o2 exchange"]
+
+[concepts."exchange:carbon_dioxide"]
+category = "exchange"
+preferred_label = "Carbon dioxide exchange"
+description = "An exchange reaction involving carbon dioxide."
+synonyms = ["carbon dioxide", "co2 exchange"]
+
+[concepts."exchange:glucose"]
+category = "exchange"
+preferred_label = "Glucose exchange"
+description = "An exchange reaction involving glucose."
+synonyms = ["glucose", "D-glucose exchange", "glc-D exchange"]
+
+[concepts."exchange:acetate"]
+category = "exchange"
+preferred_label = "Acetate exchange"
+description = "An exchange reaction involving acetate."
+synonyms = ["acetate"]
+
+[concepts."exchange:ammonium"]
+category = "exchange"
+preferred_label = "Ammonium exchange"
+description = "An exchange reaction involving ammonium."
+synonyms = ["ammonium", "ammonia exchange", "nh4 exchange"]
+
+[concepts."exchange:nitrate"]
+category = "exchange"
+preferred_label = "Nitrate exchange"
+description = "An exchange reaction involving nitrate."
+synonyms = ["nitrate", "no3 exchange"]
+
+[concepts."exchange:phosphate"]
+category = "exchange"
+preferred_label = "Phosphate exchange"
+description = "An exchange reaction involving inorganic phosphate."
+synonyms = ["phosphate", "inorganic phosphate exchange", "pi exchange"]
+
+[concepts."exchange:sulfate"]
+category = "exchange"
+preferred_label = "Sulfate exchange"
+description = "An exchange reaction involving sulfate."
+synonyms = ["sulfate", "so4 exchange"]
+
+[concepts."exchange:photon"]
+category = "exchange"
+preferred_label = "Photon exchange"
+description = "An exchange reaction involving photons or light."
+synonyms = ["photon", "light exchange", "photon uptake"]
+
+[concepts."pathway:glycolysis"]
+category = "pathway"
+preferred_label = "Glycolysis"
+description = "Reactions associated with glycolysis."
+synonyms = [
+    "glycolytic pathway",
+    "glycolysis / gluconeogenesis",
+    "glycolysis and gluconeogenesis",
+]
+
+[concepts."pathway:tricarboxylic_acid_cycle"]
+category = "pathway"
+preferred_label = "Tricarboxylic acid cycle"
+description = "Reactions associated with the tricarboxylic acid cycle."
+synonyms = [
+    "TCA cycle",
+    "citrate cycle",
+    "citric acid cycle",
+    "citrate cycle (TCA cycle)",
+]
+
+[concepts."pathway:pentose_phosphate_pathway"]
+category = "pathway"
+preferred_label = "Pentose phosphate pathway"
+description = "Reactions associated with the pentose phosphate pathway."
+synonyms = ["pentose phosphate cycle", "hexose monophosphate shunt"]
+
+[concepts."pathway:oxidative_phosphorylation"]
+category = "pathway"
+preferred_label = "Oxidative phosphorylation"
+description = "Reactions associated with oxidative phosphorylation."
+synonyms = ["respiratory chain", "electron transport chain"]
+
+[concepts."pathway:pyruvate_metabolism"]
+category = "pathway"
+preferred_label = "Pyruvate metabolism"
+description = "Reactions associated with pyruvate metabolism."
+synonyms = []
+
+[concepts."pathway:glyoxylate_metabolism"]
+category = "pathway"
+preferred_label = "Glyoxylate metabolism"
+description = "Reactions associated with glyoxylate metabolism."
+synonyms = [
+    "glyoxylate cycle",
+    "glyoxylate and dicarboxylate metabolism",
+]
+
+[concepts."pathway:nitrogen_metabolism"]
+category = "pathway"
+preferred_label = "Nitrogen metabolism"
+description = "Reactions associated with nitrogen metabolism."
+synonyms = []
+
+[concepts."pathway:glycerophospholipid_metabolism"]
+category = "pathway"
+preferred_label = "Glycerophospholipid metabolism"
+description = "Reactions associated with glycerophospholipid metabolism."
+synonyms = []
+
+[concepts."pathway:fatty_acid_metabolism"]
+category = "pathway"
+preferred_label = "Fatty acid metabolism"
+description = "Reactions associated with fatty-acid metabolism."
+synonyms = ["fatty acid degradation", "fatty acid biosynthesis"]
+
+[concepts."pathway:arginine_and_proline_metabolism"]
+category = "pathway"
+preferred_label = "Arginine and proline metabolism"
+description = "Reactions associated with arginine and proline metabolism."
+synonyms = []
+
+[concepts."pathway:glycine_serine_and_threonine_metabolism"]
+category = "pathway"
+preferred_label = "Glycine, serine and threonine metabolism"
+description = "Reactions associated with glycine, serine and threonine metabolism."
+synonyms = [
+    "glycine and serine metabolism",
+    "glycine, serine and threonine metabolism",
+]
+
+[concepts."pathway:branched_chain_amino_acid_metabolism"]
+category = "pathway"
+preferred_label = "Branched-chain amino acid metabolism"
+description = "Reactions associated with valine, leucine and isoleucine metabolism."
+synonyms = [
+    "valine, leucine, and isoleucine metabolism",
+    "valine, leucine and isoleucine biosynthesis",
+]
+
+[concepts."pathway:cysteine_and_methionine_metabolism"]
+category = "pathway"
+preferred_label = "Cysteine and methionine metabolism"
+description = "Reactions associated with cysteine and methionine metabolism."
+synonyms = [
+    "cysteine metabolism",
+    "methionine metabolism",
+]
+
+[concepts."pathway:alanine_aspartate_and_glutamate_metabolism"]
+category = "pathway"
+preferred_label = "Alanine, aspartate and glutamate metabolism"
+description = "Reactions associated with alanine, aspartate and glutamate metabolism."
+synonyms = [
+    "alanine and aspartate metabolism",
+    "glutamate metabolism",
+]
+
+[concepts."pathway:histidine_metabolism"]
+category = "pathway"
+preferred_label = "Histidine metabolism"
+description = "Reactions associated with histidine metabolism."
+synonyms = []
+
+[concepts."pathway:aromatic_amino_acid_metabolism"]
+category = "pathway"
+preferred_label = "Aromatic amino acid metabolism"
+description = "Reactions associated with phenylalanine, tyrosine and tryptophan metabolism."
+synonyms = [
+    "tyrosine, tryptophan, and phenylalanine metabolism",
+    "phenylalanine metabolism",
+    "tyrosine metabolism",
+    "tryptophan metabolism",
+    "phenylalanine, tyrosine and tryptophan biosynthesis",
+]
+
+[concepts."pathway:folate_metabolism"]
+category = "pathway"
+preferred_label = "Folate metabolism"
+description = "Reactions associated with folate metabolism."
+synonyms = ["one carbon pool by folate"]
+
+[concepts."pathway:cofactor_biosynthesis"]
+category = "pathway"
+preferred_label = "Cofactor biosynthesis"
+description = "Reactions associated with cofactor and prosthetic-group biosynthesis."
+synonyms = [
+    "cofactor and prosthetic group biosynthesis",
+    "biosynthesis of cofactors",
+]
+
+[concepts."pathway:alternate_carbon_metabolism"]
+category = "pathway"
+preferred_label = "Alternate carbon metabolism"
+description = "Reactions associated with the metabolism of alternative carbon sources."
+synonyms = []
+
+[concepts."pathway:nucleotide_salvage"]
+category = "pathway"
+preferred_label = "Nucleotide salvage"
+description = "Reactions associated with nucleotide salvage."
+synonyms = ["nucleotide salvage pathway"]
+
+[concepts."pathway:cell_envelope_biosynthesis"]
+category = "pathway"
+preferred_label = "Cell envelope biosynthesis"
+description = "Reactions associated with cell-envelope biosynthesis."
+synonyms = []
+
+[concepts."pathway:lipopolysaccharide_metabolism"]
+category = "pathway"
+preferred_label = "Lipopolysaccharide metabolism"
+description = "Reactions associated with lipopolysaccharide biosynthesis and recycling."
+synonyms = [
+    "lipopolysaccharide biosynthesis",
+    "lipopolysaccharide biosynthesis / recycling",
+]
+
+[concepts."pathway:membrane_lipid_metabolism"]
+category = "pathway"
+preferred_label = "Membrane lipid metabolism"
+description = "Reactions associated with membrane-lipid metabolism."
+synonyms = []
+
+[concepts."pathway:murein_metabolism"]
+category = "pathway"
+preferred_label = "Murein metabolism"
+description = "Reactions associated with murein biosynthesis and recycling."
+synonyms = [
+    "murein biosynthesis",
+    "murein recycling",
+    "peptidoglycan biosynthesis",
+]
+
+[concepts."pathway:purine_and_pyrimidine_biosynthesis"]
+category = "pathway"
+preferred_label = "Purine and pyrimidine biosynthesis"
+description = "Reactions associated with purine and pyrimidine biosynthesis."
+synonyms = []
+
+[concepts."pathway:trna_charging"]
+category = "pathway"
+preferred_label = "tRNA charging"
+description = "Reactions associated with aminoacyl-tRNA charging."
+synonyms = ["aminoacyl-tRNA biosynthesis"]
+
+[concepts."pathway:threonine_and_lysine_metabolism"]
+category = "pathway"
+preferred_label = "Threonine and lysine metabolism"
+description = "Reactions associated with threonine and lysine metabolism."
+synonyms = []
+
+[concepts."pathway:methylglyoxal_metabolism"]
+category = "pathway"
+preferred_label = "Methylglyoxal metabolism"
+description = "Reactions associated with methylglyoxal metabolism."
+synonyms = []
+
+[concepts."pathway:anaplerotic_reactions"]
+category = "pathway"
+preferred_label = "Anaplerotic reactions"
+description = "Reactions replenishing metabolic-cycle intermediates."
+synonyms = ["anaplerosis"]
+
+[concepts."pathway:photosynthesis"]
+category = "pathway"
+preferred_label = "Photosynthesis"
+description = "Reactions associated with photosynthesis."
+synonyms = ["photosynthetic reactions", "photosynthetic light reactions"]
+
+[concepts."pathway:carbon_fixation"]
+category = "pathway"
+preferred_label = "Carbon fixation"
+description = "Reactions associated with biological carbon fixation."
+synonyms = [
+    "carbon fixation in photosynthetic organisms",
+    "carbon fixation by Calvin cycle",
+    "other carbon fixation pathways",
+    "Calvin cycle",
+    "Calvin-Benson-Bassham cycle",
+]
+
+[concepts."pathway:porphyrin_and_chlorophyll_metabolism"]
+category = "pathway"
+preferred_label = "Porphyrin and chlorophyll metabolism"
+description = "Reactions associated with porphyrin and chlorophyll metabolism."
+synonyms = ["porphyrin metabolism", "chlorophyll metabolism"]
+
+[concepts."pathway:carotenoid_biosynthesis"]
+category = "pathway"
+preferred_label = "Carotenoid biosynthesis"
+description = "Reactions associated with carotenoid biosynthesis."
+synonyms = ["carotenoid metabolism"]
+
+[concepts."pathway:nucleotide_metabolism"]
+category = "pathway"
+preferred_label = "Nucleotide metabolism"
+description = "Reactions associated with nucleotide metabolism."
+synonyms = []
+
+[concepts."pathway:purine_metabolism"]
+category = "pathway"
+preferred_label = "Purine metabolism"
+description = "Reactions associated with purine metabolism."
+synonyms = []
+
+[concepts."pathway:pyrimidine_metabolism"]
+category = "pathway"
+preferred_label = "Pyrimidine metabolism"
+description = "Reactions associated with pyrimidine metabolism."
+synonyms = []
+
+[concepts."pathway:amino_acid_biosynthesis"]
+category = "pathway"
+preferred_label = "Amino acid biosynthesis"
+description = "Reactions associated with amino-acid biosynthesis."
+synonyms = ["biosynthesis of amino acids"]
+
+[concepts."pathway:nucleotide_sugar_metabolism"]
+category = "pathway"
+preferred_label = "Nucleotide sugar metabolism"
+description = "Reactions associated with nucleotide-sugar metabolism and biosynthesis."
+synonyms = [
+    "biosynthesis of nucleotide sugars",
+    "biosynthesis of various nucleotide sugars",
+    "amino sugar and nucleotide sugar metabolism",
+]
+
+[concepts."pathway:fructose_and_mannose_metabolism"]
+category = "pathway"
+preferred_label = "Fructose and mannose metabolism"
+description = "Reactions associated with fructose and mannose metabolism."
+synonyms = []
+
+[concepts."pathway:galactose_metabolism"]
+category = "pathway"
+preferred_label = "Galactose metabolism"
+description = "Reactions associated with galactose metabolism."
+synonyms = []
+
+[concepts."pathway:starch_and_sucrose_metabolism"]
+category = "pathway"
+preferred_label = "Starch and sucrose metabolism"
+description = "Reactions associated with starch and sucrose metabolism."
+synonyms = []
+
+[concepts."pathway:glutathione_metabolism"]
+category = "pathway"
+preferred_label = "Glutathione metabolism"
+description = "Reactions associated with glutathione metabolism."
+synonyms = []
+
+[concepts."pathway:sulfur_metabolism"]
+category = "pathway"
+preferred_label = "Sulfur metabolism"
+description = "Reactions associated with sulfur metabolism."
+synonyms = ["sulfur cycle"]
+
+[concepts."pathway:butanoate_metabolism"]
+category = "pathway"
+preferred_label = "Butanoate metabolism"
+description = "Reactions associated with butanoate metabolism."
+synonyms = ["butyrate metabolism"]
+
+[concepts."pathway:propanoate_metabolism"]
+category = "pathway"
+preferred_label = "Propanoate metabolism"
+description = "Reactions associated with propanoate metabolism."
+synonyms = ["propionate metabolism"]
+
+[concepts."pathway:nicotinate_and_nicotinamide_metabolism"]
+category = "pathway"
+preferred_label = "Nicotinate and nicotinamide metabolism"
+description = "Reactions associated with nicotinate and nicotinamide metabolism."
+synonyms = []
+
+[concepts."pathway:riboflavin_metabolism"]
+category = "pathway"
+preferred_label = "Riboflavin metabolism"
+description = "Reactions associated with riboflavin metabolism."
+synonyms = []
+
+[concepts."pathway:vitamin_b6_metabolism"]
+category = "pathway"
+preferred_label = "Vitamin B6 metabolism"
+description = "Reactions associated with vitamin B6 metabolism."
+synonyms = []
+
+[concepts."pathway:thiamine_metabolism"]
+category = "pathway"
+preferred_label = "Thiamine metabolism"
+description = "Reactions associated with thiamine metabolism."
+synonyms = []
+
+[concepts."pathway:biotin_metabolism"]
+category = "pathway"
+preferred_label = "Biotin metabolism"
+description = "Reactions associated with biotin metabolism."
+synonyms = []
+
+[concepts."pathway:pantothenate_and_coa_biosynthesis"]
+category = "pathway"
+preferred_label = "Pantothenate and CoA biosynthesis"
+description = "Reactions associated with pantothenate and coenzyme A biosynthesis."
+synonyms = []
+
+[concepts."pathway:glycerolipid_metabolism"]
+category = "pathway"
+preferred_label = "Glycerolipid metabolism"
+description = "Reactions associated with glycerolipid metabolism."
+synonyms = []
+
+[concepts."pathway:terpenoid_backbone_biosynthesis"]
+category = "pathway"
+preferred_label = "Terpenoid backbone biosynthesis"
+description = "Reactions associated with terpenoid-backbone biosynthesis."
+synonyms = []
+
+[concepts."pathway:arginine_biosynthesis"]
+category = "pathway"
+preferred_label = "Arginine biosynthesis"
+description = "Reactions associated with arginine biosynthesis."
+synonyms = []
+
+[concepts."pathway:lysine_biosynthesis"]
+category = "pathway"
+preferred_label = "Lysine biosynthesis"
+description = "Reactions associated with lysine biosynthesis."
+synonyms = []
+
+[concepts."pathway:lysine_degradation"]
+category = "pathway"
+preferred_label = "Lysine degradation"
+description = "Reactions associated with lysine degradation."
+synonyms = []
+
+[concepts."pathway:two_oxocarboxylic_acid_metabolism"]
+category = "pathway"
+preferred_label = "2-Oxocarboxylic acid metabolism"
+description = "Reactions associated with 2-oxocarboxylic-acid metabolism."
+synonyms = []
+
+[concepts."pathway:pentose_and_glucuronate_interconversions"]
+category = "pathway"
+preferred_label = "Pentose and glucuronate interconversions"
+description = "Reactions interconverting pentoses, glucuronate, and related compounds."
+synonyms = []
+
+[concepts."pathway:methane_metabolism"]
+category = "pathway"
+preferred_label = "Methane metabolism"
+description = "Reactions associated with methane and one-carbon metabolism."
+synonyms = []
+
+[concepts."pathway:aromatic_compound_degradation"]
+category = "pathway"
+preferred_label = "Aromatic compound degradation"
+description = "Reactions associated with degradation of aromatic compounds."
+synonyms = ["degradation of aromatic compounds"]
+
+[concepts."pathway:ascorbate_and_aldarate_metabolism"]
+category = "pathway"
+preferred_label = "Ascorbate and aldarate metabolism"
+description = "Reactions associated with ascorbate and aldarate metabolism."
+synonyms = []
+
+[concepts."pathway:d_amino_acid_metabolism"]
+category = "pathway"
+preferred_label = "D-Amino acid metabolism"
+description = "Reactions associated with D-amino-acid metabolism."
+synonyms = []
+
+[concepts."pathway:ubiquinone_biosynthesis"]
+category = "pathway"
+preferred_label = "Ubiquinone and other terpenoid-quinone biosynthesis"
+description = "Reactions associated with ubiquinone and related quinone biosynthesis."
+synonyms = ["ubiquinone biosynthesis"]
+
+[concepts."pathway:beta_alanine_metabolism"]
+category = "pathway"
+preferred_label = "beta-Alanine metabolism"
+description = "Reactions associated with beta-alanine metabolism."
+synonyms = ["β-alanine metabolism"]
+
+[concepts."pathway:selenocompound_metabolism"]
+category = "pathway"
+preferred_label = "Selenocompound metabolism"
+description = "Reactions associated with selenium-containing compounds."
+synonyms = []
+
+[concepts."pathway:taurine_and_hypotaurine_metabolism"]
+category = "pathway"
+preferred_label = "Taurine and hypotaurine metabolism"
+description = "Reactions associated with taurine and hypotaurine metabolism."
+synonyms = []
+
+[concepts."pathway:branched_chain_amino_acid_degradation"]
+category = "pathway"
+preferred_label = "Branched-chain amino acid degradation"
+description = "Reactions associated with valine, leucine, and isoleucine degradation."
+synonyms = ["valine, leucine and isoleucine degradation"]

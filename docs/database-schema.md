@@ -129,10 +129,10 @@ of creating duplicate records; evidence from other providers is preserved.
 
 `concept_evidence` records:
 
-- evidence type;
-- field examined;
-- value that matched;
-- human-readable explanation; and
+- fixed evidence code and source;
+- observed runtime value;
+- human-readable explanation;
+- annotation/assertion/relationship provenance where applicable; and
 - rule weight.
 
 This supports transparent inspection of why a concept was assigned.

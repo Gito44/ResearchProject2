@@ -28,21 +28,26 @@ class AnnotationResult:
 @dataclass(frozen=True)
 class ConceptSummary:
     name: str
+    preferred_label: str
     confidence: float
 
 
 @dataclass(frozen=True)
 class EvidenceResult:
-    evidence_type: str
-    target_field: str
-    matched_value: str | None
-    text: str
+    evidence_code: str
+    source: str
+    observed_value: str | None
+    explanation: str
     weight: float
+    annotation_id: int | None
+    assertion_id: int | None
+    relationship_id: int | None
 
 
 @dataclass(frozen=True)
 class ConceptExplanation:
     name: str
+    preferred_label: str
     confidence: float
     evidence: tuple[EvidenceResult, ...]
 

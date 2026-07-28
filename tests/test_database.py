@@ -16,27 +16,7 @@ from semgem.database.sqlite import (
     ModelIdentityConflictError,
     SemanticDatabase,
 )
-from semgem.evidence.engine import EvidenceEngine
-from semgem.evidence.rules import ConceptDefinition, EvidenceRule
-
-
-def _concepts(extracted):
-    definition = ConceptDefinition(
-        name="objective_reaction",
-        entity_type="reaction",
-        description="Objective",
-        minimum_score=1.0,
-        rules=[
-            EvidenceRule(
-                evidence_type="objective",
-                target_field="objective_coefficient",
-                operator="nonzero",
-                weight=1.0,
-                text="Nonzero objective coefficient",
-            )
-        ],
-    )
-    return EvidenceEngine([definition]).classify_reactions(extracted["reactions"])
+from semgem.evidence.rules import CandidateEvidence, ScoredConcept, ScoredEvidence
 
 
 def _import(db, model, extracted, content_hash="hash-one"):
@@ -49,7 +29,6 @@ def _import(db, model, extracted, content_hash="hash-one"):
         genes=extracted["genes"],
         stoichiometry=extracted["stoichiometry"],
         reaction_genes=extracted["reaction_genes"],
-        concepts=_concepts(extracted),
     )
 
 
@@ -95,7 +74,39 @@ def test_old_schema_is_rejected_with_a_clear_error(tmp_path, schema_path):
     connection.close()
 
     database = SemanticDatabase(db_path, schema_path)
-    with pytest.raises(IncompatibleSchemaError, match="older SemGEM schema"):
+    with pytest.raises(IncompatibleSchemaError, match="version 3 is required"):
+        database.initialise()
+    database.close()
+
+
+def test_partial_current_schema_is_rejected_with_a_clear_error(
+    tmp_path,
+    schema_path,
+):
+    db_path = tmp_path / "partial.sqlite"
+    connection = sqlite3.connect(db_path)
+    connection.executescript(
+        """
+        CREATE TABLE models (
+            id INTEGER PRIMARY KEY,
+            original_id TEXT,
+            name TEXT,
+            source_file TEXT,
+            content_hash TEXT
+        );
+        CREATE TABLE semantic_concepts (
+            id INTEGER PRIMARY KEY,
+            entity_id INTEGER,
+            concept_name TEXT,
+            confidence REAL
+        );
+        PRAGMA user_version = 3;
+        """
+    )
+    connection.close()
+
+    database = SemanticDatabase(db_path, schema_path)
+    with pytest.raises(IncompatibleSchemaError, match="semantic-label"):
         database.initialise()
     database.close()
 
@@ -132,12 +143,39 @@ def test_annotation_lists_are_normalised_to_individual_rows(
     assert rhea == [("12345",), ("67890",)]
 
 
-def test_evidence_records_target_and_matched_value(database, small_model, extracted):
+def test_scored_conclusions_store_fixed_evidence_and_provenance(
+    database, small_model, extracted
+):
     _import(database, small_model, extracted)
+    entity_id = database.conn.execute(
+        "SELECT id FROM entities WHERE original_id = 'BIOMASS_TEST'"
+    ).fetchone()[0]
+    candidate = CandidateEvidence(
+        entity_id=entity_id,
+        concept_id="objective:model_objective",
+        evidence_code="objective_coefficient_nonzero",
+        source="model",
+        explanation="Nonzero objective coefficient",
+        observed_value="1.0",
+    )
+    database.replace_semantic_concepts(
+        [
+            ScoredConcept(
+                entity_id=entity_id,
+                concept_id="objective:model_objective",
+                preferred_label="Model objective",
+                confidence=1.0,
+                evidence=(ScoredEvidence(candidate=candidate, weight=1.0),),
+            )
+        ]
+    )
     row = database.conn.execute(
-        "SELECT target_field, matched_value FROM concept_evidence"
+        """
+        SELECT evidence_code, source, observed_value
+        FROM concept_evidence
+        """
     ).fetchone()
-    assert row == ("objective_coefficient", "1.0")
+    assert row == ("objective_coefficient_nonzero", "model", "1.0")
 
 
 def test_duplicate_model_is_rejected_without_adding_rows(
@@ -184,7 +222,6 @@ def test_failed_import_rolls_back_the_whole_model(database, small_model, extract
             genes=extracted["genes"],
             stoichiometry=extracted["stoichiometry"],
             reaction_genes=extracted["reaction_genes"],
-            concepts=[],
         )
 
     assert database.conn.execute("SELECT COUNT(*) FROM models").fetchone()[0] == 0

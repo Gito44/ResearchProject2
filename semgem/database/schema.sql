@@ -158,6 +158,7 @@ CREATE TABLE IF NOT EXISTS semantic_concepts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     entity_id INTEGER NOT NULL,
     concept_name TEXT NOT NULL,
+    preferred_label TEXT NOT NULL,
     confidence REAL NOT NULL,
     FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE,
     UNIQUE (entity_id, concept_name),
@@ -167,13 +168,20 @@ CREATE TABLE IF NOT EXISTS semantic_concepts (
 CREATE TABLE IF NOT EXISTS concept_evidence (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     concept_id INTEGER NOT NULL,
-    evidence_type TEXT NOT NULL,
-    target_field TEXT NOT NULL,
-    matched_value TEXT,
-    evidence_text TEXT NOT NULL,
+    evidence_code TEXT NOT NULL,
+    source TEXT NOT NULL,
+    explanation TEXT NOT NULL,
+    observed_value TEXT,
     weight REAL NOT NULL,
+    annotation_id INTEGER,
+    assertion_id INTEGER,
+    relationship_id INTEGER,
     FOREIGN KEY (concept_id) REFERENCES semantic_concepts(id) ON DELETE CASCADE,
+    FOREIGN KEY (annotation_id) REFERENCES annotations(id) ON DELETE SET NULL,
+    FOREIGN KEY (assertion_id) REFERENCES enrichment_assertions(id) ON DELETE SET NULL,
+    FOREIGN KEY (relationship_id)
+        REFERENCES external_term_relationships(id) ON DELETE SET NULL,
     CHECK (weight >= 0.0 AND weight <= 1.0)
 );
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;

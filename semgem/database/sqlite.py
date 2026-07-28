@@ -5,11 +5,13 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from semgem.core.records import (
+    AnnotationInputRecord,
     EnrichmentAssertionRecord,
     ExternalTermRecord,
     ExternalTermRelationshipRecord,
     ProviderRelationshipEvidenceRecord,
 )
+from semgem.evidence.rules import ScoredConcept
 
 
 class DuplicateModelError(ValueError):
@@ -44,6 +46,13 @@ class SemanticDatabase:
             """
         ).fetchone()
         if existing_models_table is not None:
+            schema_version = self.conn.execute("PRAGMA user_version").fetchone()[0]
+            if schema_version != 3:
+                raise IncompatibleSchemaError(
+                    f"The existing database uses SemGEM schema version "
+                    f"{schema_version}; version 3 is required. Create a new "
+                    "catalog and rebuild it from the source model files."
+                )
             columns = {
                 row[1] for row in self.conn.execute("PRAGMA table_info(models)")
             }
@@ -59,6 +68,18 @@ class SemanticDatabase:
                     "The existing database uses an older SemGEM schema. "
                     "Create a new catalog and rebuild it from the source model files."
                 )
+            concept_columns = {
+                row[1]
+                for row in self.conn.execute(
+                    "PRAGMA table_info(semantic_concepts)"
+                )
+            }
+            if "preferred_label" not in concept_columns:
+                raise IncompatibleSchemaError(
+                    "The existing database is missing v0.5 semantic-label "
+                    "fields. Create a new catalog and rebuild it from the "
+                    "source model files."
+                )
 
         with self.schema_path.open("r", encoding="utf-8") as schema_file:
             self.conn.executescript(schema_file.read())
@@ -73,7 +94,6 @@ class SemanticDatabase:
         genes: list,
         stoichiometry: list,
         reaction_genes: list,
-        concepts: list,
     ) -> int:
         """Import one complete model in a single transaction."""
         original_id = str(model.id or "").strip()
@@ -104,15 +124,6 @@ class SemanticDatabase:
                     reaction_ids=reaction_ids,
                     gene_ids=gene_ids,
                 )
-                self._insert_semantic_concepts(
-                    concepts,
-                    entity_ids={
-                        "reaction": reaction_ids,
-                        "metabolite": metabolite_ids,
-                        "gene": gene_ids,
-                    },
-                )
-
                 return model_db_id
         except Exception:
             self.conn.rollback()
@@ -330,49 +341,6 @@ class SemanticDatabase:
             yield json.dumps(raw_value, sort_keys=True)
         elif raw_value is not None:
             yield str(raw_value)
-
-    def _insert_semantic_concepts(
-        self,
-        concepts: list,
-        entity_ids: dict[str, dict[str, int]],
-    ) -> None:
-        for concept in concepts:
-            entity_id = entity_ids[concept.entity_type][concept.entity_id]
-            cursor = self.conn.execute(
-                """
-                INSERT INTO semantic_concepts (
-                    entity_id,
-                    concept_name,
-                    confidence
-                )
-                VALUES (?, ?, ?)
-                """,
-                (entity_id, concept.concept_name, concept.confidence),
-            )
-            concept_id = cursor.lastrowid
-
-            for evidence in concept.evidence:
-                self.conn.execute(
-                    """
-                    INSERT INTO concept_evidence (
-                        concept_id,
-                        evidence_type,
-                        target_field,
-                        matched_value,
-                        evidence_text,
-                        weight
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        concept_id,
-                        evidence.evidence_type,
-                        evidence.target_field,
-                        evidence.matched_value,
-                        evidence.evidence_text,
-                        evidence.weight,
-                    ),
-                )
 
     def store_enrichment(
         self,
@@ -675,6 +643,208 @@ class SemanticDatabase:
             )
             if cursor.rowcount != 1:
                 raise ValueError(f"Enrichment run {run_id} does not exist.")
+
+    def annotation_inputs(
+        self,
+        sources: Iterable[str] | None = None,
+    ) -> list[AnnotationInputRecord]:
+        parameters: list[str] = []
+        where = ""
+        if sources is not None:
+            selected = sorted(set(sources))
+            if not selected:
+                return []
+            placeholders = ", ".join("?" for _ in selected)
+            where = f"WHERE source IN ({placeholders})"
+            parameters.extend(selected)
+        rows = self.conn.execute(
+            f"""
+            SELECT id, entity_id, source, identifier
+            FROM annotations
+            {where}
+            ORDER BY source, identifier, entity_id
+            """,
+            parameters,
+        ).fetchall()
+        return [
+            AnnotationInputRecord(
+                annotation_id=row[0],
+                entity_id=row[1],
+                source=row[2],
+                identifier=row[3],
+            )
+            for row in rows
+        ]
+
+    def external_identifiers(self, source: str) -> set[str]:
+        return {
+            row[0]
+            for row in self.conn.execute(
+                "SELECT identifier FROM external_terms WHERE source = ?",
+                (source,),
+            ).fetchall()
+        }
+
+    def evidence_entity_rows(self) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            SELECT e.id,
+                   e.entity_type,
+                   e.original_id,
+                   e.name,
+                   r.objective_coefficient,
+                   r.equation,
+                   r.subsystem
+            FROM entities AS e
+            LEFT JOIN reactions AS r ON r.entity_id = e.id
+            ORDER BY e.id
+            """
+        ).fetchall()
+        output = []
+        for row in rows:
+            original_id = row[2] or ""
+            name = row[3] or ""
+            equation = row[5] or ""
+            subsystem = row[6] or ""
+            output.append(
+                {
+                    "entity_id": row[0],
+                    "entity_type": row[1],
+                    "original_id": original_id,
+                    "name": name,
+                    "objective_coefficient": row[4],
+                    "equation": equation,
+                    "subsystem": subsystem,
+                    "combined_text": " ".join(
+                        (original_id, name, equation, subsystem)
+                    ),
+                }
+            )
+        return output
+
+    def external_evidence_rows(self) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            WITH RECURSIVE reachable (
+                assertion_id,
+                entity_id,
+                term_id,
+                distance,
+                relationship_id,
+                predicate
+            ) AS (
+                SELECT ea.id,
+                       ea.entity_id,
+                       ea.external_term_id,
+                       0,
+                       NULL,
+                       ea.predicate
+                FROM enrichment_assertions AS ea
+
+                UNION ALL
+
+                SELECT reachable.assertion_id,
+                       reachable.entity_id,
+                       rel.object_term_id,
+                       reachable.distance + 1,
+                       rel.id,
+                       rel.predicate
+                FROM reachable
+                JOIN external_term_relationships AS rel
+                  ON rel.subject_term_id = reachable.term_id
+                WHERE reachable.distance < 20
+            )
+            SELECT DISTINCT
+                   reachable.entity_id,
+                   entity.entity_type,
+                   reachable.assertion_id,
+                   reachable.relationship_id,
+                   reachable.distance,
+                   reachable.predicate,
+                   term.name,
+                   evidence.provider,
+                   evidence.source_annotation_id
+            FROM reachable
+            JOIN entities AS entity ON entity.id = reachable.entity_id
+            JOIN external_terms AS term ON term.id = reachable.term_id
+            JOIN entity_assertion_evidence AS evidence
+              ON evidence.assertion_id = reachable.assertion_id
+            WHERE term.name IS NOT NULL
+            ORDER BY reachable.entity_id,
+                     reachable.assertion_id,
+                     reachable.distance,
+                     term.name
+            """
+        ).fetchall()
+        return [
+            {
+                "entity_id": row[0],
+                "entity_type": row[1],
+                "assertion_id": row[2],
+                "relationship_id": row[3],
+                "distance": row[4],
+                "predicate": row[5],
+                "term_name": row[6],
+                "provider": row[7],
+                "source_annotation_id": row[8],
+            }
+            for row in rows
+        ]
+
+    def replace_semantic_concepts(
+        self,
+        concepts: Iterable[ScoredConcept],
+    ) -> None:
+        with self.conn:
+            self.conn.execute("DELETE FROM semantic_concepts")
+            for concept in concepts:
+                cursor = self.conn.execute(
+                    """
+                    INSERT INTO semantic_concepts (
+                        entity_id,
+                        concept_name,
+                        preferred_label,
+                        confidence
+                    )
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        concept.entity_id,
+                        concept.concept_id,
+                        concept.preferred_label,
+                        concept.confidence,
+                    ),
+                )
+                concept_db_id = cursor.lastrowid
+                for evidence in concept.evidence:
+                    candidate = evidence.candidate
+                    self.conn.execute(
+                        """
+                        INSERT INTO concept_evidence (
+                            concept_id,
+                            evidence_code,
+                            source,
+                            explanation,
+                            observed_value,
+                            weight,
+                            annotation_id,
+                            assertion_id,
+                            relationship_id
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            concept_db_id,
+                            candidate.evidence_code,
+                            candidate.source,
+                            candidate.explanation,
+                            candidate.observed_value,
+                            evidence.weight,
+                            candidate.annotation_id,
+                            candidate.assertion_id,
+                            candidate.relationship_id,
+                        ),
+                    )
 
     def close(self) -> None:
         self.conn.close()

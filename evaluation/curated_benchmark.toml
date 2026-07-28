@@ -1,0 +1,184 @@
+version = "0.1"
+description = """
+Closed-world reaction/concept benchmark curated from well-established reaction
+functions. Ambiguous pathway-boundary reactions are intentionally excluded.
+Expected memberships were written independently of SemGEM output.
+"""
+
+scoped_concepts = [
+    "pathway:glycolysis",
+    "pathway:pentose_phosphate_pathway",
+    "pathway:tricarboxylic_acid_cycle",
+    "pathway:photosynthesis",
+    "pathway:carbon_fixation",
+    "exchange:oxygen",
+    "exchange:carbon_dioxide",
+    "exchange:glucose",
+    "exchange:photon",
+    "objective:atp_maintenance",
+]
+
+[[sets]]
+model = "e_coli_core"
+concept = "pathway:glycolysis"
+reactions = ["PFK", "PGI", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
+
+[[sets]]
+model = "e_coli_core"
+concept = "pathway:pentose_phosphate_pathway"
+reactions = ["G6PDH2r", "PGL", "GND", "RPI", "RPE", "TKT1", "TALA"]
+
+[[sets]]
+model = "e_coli_core"
+concept = "pathway:tricarboxylic_acid_cycle"
+reactions = ["CS", "ACONTa", "ACONTb", "ICDHyr", "AKGDH", "SUCOAS", "FUM", "MDH"]
+
+[[sets]]
+model = "iJO1366"
+concept = "pathway:glycolysis"
+reactions = ["PFK", "PGI", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
+
+[[sets]]
+model = "iJO1366"
+concept = "pathway:pentose_phosphate_pathway"
+reactions = ["G6PDH2r", "PGL", "GND", "RPI", "RPE", "TKT1", "TALA"]
+
+[[sets]]
+model = "iJO1366"
+concept = "pathway:tricarboxylic_acid_cycle"
+reactions = ["CS", "ACONTa", "ACONTb", "ICDHyr", "AKGDH", "SUCOAS", "FUM", "MDH"]
+
+[[sets]]
+model = "iJN678"
+concept = "pathway:glycolysis"
+reactions = ["PFK", "PGI", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
+
+[[sets]]
+model = "iJN678"
+concept = "pathway:pentose_phosphate_pathway"
+reactions = ["G6PDH2r", "PGL", "GND", "RPI", "RPE", "TKT1", "TALA"]
+
+[[sets]]
+model = "iJN678"
+concept = "pathway:tricarboxylic_acid_cycle"
+reactions = ["CS", "ACONT", "ICDHyr", "SUCOAS", "FUM"]
+
+[[sets]]
+model = "iMM904"
+concept = "pathway:glycolysis"
+reactions = ["PFK", "PGI", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
+
+[[sets]]
+model = "iMM904"
+concept = "pathway:pentose_phosphate_pathway"
+reactions = ["G6PDH2r", "PGL", "GND", "RPI", "RPE", "TKT1", "TALA"]
+
+[[sets]]
+model = "iMM904"
+concept = "pathway:tricarboxylic_acid_cycle"
+reactions = ["ACONT", "ICDHyr", "SUCOASm", "MDHi2"]
+
+[[sets]]
+model = "iJN678"
+concept = "pathway:photosynthesis"
+reactions = [
+    "__iJN678__CBFC2",
+    "__iJN678__CBFCu",
+    "__iJN678__FQR",
+    "__iJN678__FNOR",
+    "__iJN678__PSI",
+    "__iJN678__PSI_2",
+    "__iJN678__PSII",
+    "MEHLER",
+]
+
+[[sets]]
+model = "iJN678"
+concept = "pathway:carbon_fixation"
+reactions = [
+    "GAPDi_nadp",
+    "__iJN678__PRUK",
+    "__iJN678__RBCh",
+    "__iJN678__RBPC",
+    "SBP",
+]
+
+[[sets]]
+model = "e_coli_core"
+concept = "exchange:oxygen"
+reactions = ["EX_o2_e"]
+
+[[sets]]
+model = "e_coli_core"
+concept = "exchange:carbon_dioxide"
+reactions = ["EX_co2_e"]
+
+[[sets]]
+model = "e_coli_core"
+concept = "exchange:glucose"
+reactions = ["EX_glc__D_e"]
+
+[[sets]]
+model = "e_coli_core"
+concept = "objective:atp_maintenance"
+reactions = ["ATPM"]
+
+[[sets]]
+model = "iJO1366"
+concept = "exchange:oxygen"
+reactions = ["EX_o2_e"]
+
+[[sets]]
+model = "iJO1366"
+concept = "exchange:carbon_dioxide"
+reactions = ["EX_co2_e"]
+
+[[sets]]
+model = "iJO1366"
+concept = "exchange:glucose"
+reactions = ["EX_glc__D_e"]
+
+[[sets]]
+model = "iJO1366"
+concept = "objective:atp_maintenance"
+reactions = ["ATPM"]
+
+[[sets]]
+model = "iJN678"
+concept = "exchange:oxygen"
+reactions = ["EX_o2_e"]
+
+[[sets]]
+model = "iJN678"
+concept = "exchange:carbon_dioxide"
+reactions = ["EX_co2_e"]
+
+[[sets]]
+model = "iJN678"
+concept = "exchange:glucose"
+reactions = ["EX_glc__D_e"]
+
+[[sets]]
+model = "iJN678"
+concept = "exchange:photon"
+reactions = ["EX___iJN678__photon_e"]
+
+[[sets]]
+model = "iMM904"
+concept = "exchange:oxygen"
+reactions = ["EX_o2_e"]
+
+[[sets]]
+model = "iMM904"
+concept = "exchange:carbon_dioxide"
+reactions = ["EX_co2_e"]
+
+[[sets]]
+model = "iMM904"
+concept = "exchange:glucose"
+reactions = ["EX_glc__D_e"]
+
+[[sets]]
+model = "iMM904"
+concept = "objective:atp_maintenance"
+reactions = ["ATPM"]

@@ -98,3 +98,24 @@ class EnrichmentAssertionRecord:
     term_source: str
     term_identifier: str
     evidence: tuple[EntityAssertionEvidenceRecord, ...] = ()
+
+
+@dataclass(frozen=True)
+class AnnotationInputRecord:
+    annotation_id: int
+    entity_id: int
+    source: str
+    identifier: str
+
+
+@dataclass(frozen=True)
+class EnrichmentResult:
+    provider: str
+    resource_version: str | None
+    terms: tuple[ExternalTermRecord, ...] = ()
+    relationships: tuple[ExternalTermRelationshipRecord, ...] = ()
+    assertions: tuple[EnrichmentAssertionRecord, ...] = ()
+    requested_identifiers: tuple[str, ...] = ()
+    resolved_identifiers: tuple[str, ...] = ()
+    unresolved_identifiers: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()

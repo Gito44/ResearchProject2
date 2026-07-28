@@ -3,7 +3,7 @@ from dataclasses import replace
 import pytest
 
 from semgem.database.sqlite import SemanticDatabase
-from semgem.evidence.rules import EvidenceMatch, SemanticConcept
+from semgem.evidence.rules import CandidateEvidence, ScoredConcept, ScoredEvidence
 from semgem.query import (
     ConceptNotFoundError,
     EntityNotFoundError,
@@ -14,21 +14,6 @@ from semgem.query import (
 @pytest.fixture
 def catalog_path(tmp_path, schema_path, small_model, extracted):
     path = tmp_path / "catalog.sqlite"
-    concept = SemanticConcept(
-        concept_name="objective_reaction",
-        entity_type="reaction",
-        entity_id="BIOMASS_TEST",
-        confidence=1.0,
-        evidence=[
-            EvidenceMatch(
-                evidence_type="objective",
-                target_field="objective_coefficient",
-                matched_value="1.0",
-                evidence_text="Nonzero objective coefficient",
-                weight=1.0,
-            )
-        ],
-    )
     with SemanticDatabase(path, schema_path) as database:
         database.initialise()
         database.import_model(
@@ -40,7 +25,6 @@ def catalog_path(tmp_path, schema_path, small_model, extracted):
             genes=extracted["genes"],
             stoichiometry=extracted["stoichiometry"],
             reaction_genes=extracted["reaction_genes"],
-            concepts=[concept],
         )
         second_model = small_model.copy()
         second_model.id = "second_model"
@@ -57,8 +41,38 @@ def catalog_path(tmp_path, schema_path, small_model, extracted):
             genes=extracted["genes"],
             stoichiometry=extracted["stoichiometry"],
             reaction_genes=extracted["reaction_genes"],
-            concepts=[concept],
         )
+        entity_ids = [
+            row[0]
+            for row in database.conn.execute(
+                """
+                SELECT e.id
+                FROM entities AS e
+                WHERE e.entity_type = 'reaction'
+                ORDER BY e.id
+                """
+            ).fetchall()
+        ]
+        scored = []
+        for entity_id in entity_ids:
+            candidate = CandidateEvidence(
+                entity_id=entity_id,
+                concept_id="objective:model_objective",
+                evidence_code="objective_coefficient_nonzero",
+                source="model",
+                explanation="Nonzero objective coefficient",
+                observed_value="1.0",
+            )
+            scored.append(
+                ScoredConcept(
+                    entity_id=entity_id,
+                    concept_id="objective:model_objective",
+                    preferred_label="Model objective",
+                    confidence=1.0,
+                    evidence=(ScoredEvidence(candidate=candidate, weight=1.0),),
+                )
+            )
+        database.replace_semantic_concepts(scored)
     return path
 
 
@@ -105,15 +119,17 @@ def test_catalog_lists_and_explains_concepts(catalog_path):
             "test_model",
             "reaction",
             "BIOMASS_TEST",
-            "objective_reaction",
+            "objective:model_objective",
         )
 
     assert [(concept.name, concept.confidence) for concept in concepts] == [
-        ("objective_reaction", 1.0)
+        ("objective:model_objective", 1.0)
     ]
-    assert explanation.name == "objective_reaction"
-    assert explanation.evidence[0].target_field == "objective_coefficient"
-    assert explanation.evidence[0].matched_value == "1.0"
+    assert concepts[0].preferred_label == "Model objective"
+    assert explanation.name == "objective:model_objective"
+    assert explanation.preferred_label == "Model objective"
+    assert explanation.evidence[0].evidence_code == "objective_coefficient_nonzero"
+    assert explanation.evidence[0].observed_value == "1.0"
 
 
 def test_catalog_reports_missing_entities_and_concepts(catalog_path):
@@ -121,12 +137,15 @@ def test_catalog_reports_missing_entities_and_concepts(catalog_path):
         with pytest.raises(EntityNotFoundError, match="missing"):
             catalog.get_entity("test_model", "reaction", "missing")
 
-        with pytest.raises(ConceptNotFoundError, match="biomass_reaction"):
+        with pytest.raises(
+            ConceptNotFoundError,
+            match="objective:biomass_production",
+        ):
             catalog.explain_concept(
                 "test_model",
                 "reaction",
                 "BIOMASS_TEST",
-                "biomass_reaction",
+                "objective:biomass_production",
             )
 
 
@@ -160,7 +179,8 @@ def test_search_matches_names_annotations_and_concepts(catalog_path):
     with SemanticCatalog(catalog_path) as catalog:
         name_results = catalog.search("second model biomass")
         annotation_results = catalog.search("R00001")
-        concept_results = catalog.search("objective_reaction")
+        concept_results = catalog.search("objective:model_objective")
+        label_results = catalog.search("model objective")
 
     assert [result.entity.model_id for result in name_results] == ["second_model"]
     assert name_results[0].matches[0].field == "name"
@@ -168,6 +188,8 @@ def test_search_matches_names_annotations_and_concepts(catalog_path):
     assert annotation_results[0].matches[0].source == "kegg.reaction"
     assert len(concept_results) == 2
     assert concept_results[0].matches[0].field == "concept"
+    assert len(label_results) == 2
+    assert label_results[0].matches[0].field == "concept"
 
 
 def test_search_filters_model_annotation_source_and_limit(catalog_path):

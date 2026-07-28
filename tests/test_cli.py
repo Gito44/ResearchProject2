@@ -4,7 +4,7 @@ import cobra
 import pytest
 from typer.testing import CliRunner
 
-from semgem.cli import app
+from semgem.cli import app, import_model
 
 
 @pytest.fixture
@@ -52,6 +52,53 @@ def test_build_imports_multiple_models_into_one_catalog(tmp_path, small_model):
     assert models == [("second_model",), ("test_model",)]
 
 
+def test_build_runs_bulk_sbo_enrichment_and_stores_explainable_conclusions(
+    tmp_path, small_model
+):
+    first_path = tmp_path / "first.xml"
+    second_path = tmp_path / "second.xml"
+    catalog_path = tmp_path / "catalog.sqlite"
+    cobra.io.write_sbml_model(small_model, first_path)
+    second_model = small_model.copy()
+    second_model.id = "second_model"
+    cobra.io.write_sbml_model(second_model, second_path)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "build",
+            str(first_path),
+            str(second_path),
+            "--out",
+            str(catalog_path),
+            "--no-kegg",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "SBO enrichment: completed (resolved 1/1" in result.output
+    with sqlite3.connect(catalog_path) as connection:
+        assert connection.execute(
+            """
+            SELECT COUNT(*) FROM external_terms
+            WHERE source = 'sbo' AND identifier = 'SBO:0000629'
+            """
+        ).fetchone()[0] == 1
+        assert connection.execute(
+            """
+            SELECT COUNT(*) FROM enrichment_assertions
+            WHERE predicate = 'has_sbo_term'
+            """
+        ).fetchone()[0] == 2
+        assigned = connection.execute(
+            """
+            SELECT COUNT(*) FROM semantic_concepts
+            WHERE concept_name = 'objective:biomass_production'
+            """
+        ).fetchone()[0]
+    assert assigned == 2
+
+
 def test_build_discovers_models_recursively_and_deduplicates_paths(
     tmp_path, small_model
 ):
@@ -97,6 +144,38 @@ def test_build_rejects_a_directory_without_supported_models(tmp_path):
 
     assert result.exit_code == 2
     assert "No supported SBML model files were found" in result.output
+
+
+def test_import_model_reports_the_source_file_for_an_empty_model_id(
+    tmp_path,
+    monkeypatch,
+):
+    model_path = tmp_path / "invalid.xml"
+    model = cobra.Model("")
+    monkeypatch.setattr("semgem.cli.load_sbml_model", lambda _: model)
+
+    with pytest.raises(ValueError, match=r"invalid\.xml.*no usable SBML model ID"):
+        import_model(model_path, database=None)
+
+
+def test_build_without_kegg_recommends_a_new_catalogue(tmp_path, small_model):
+    model_path = tmp_path / "model.xml"
+    catalog_path = tmp_path / "catalog.sqlite"
+    cobra.io.write_sbml_model(small_model, model_path)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "build",
+            str(model_path),
+            "--out",
+            str(catalog_path),
+            "--no-kegg",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Build a new catalogue with --kegg" in result.output
 
 
 def test_models_command_lists_catalog_models(cli_catalog):
@@ -161,14 +240,17 @@ def test_concepts_and_explain_commands_show_evidence(cli_catalog):
     concepts_result = runner.invoke(app, ["concepts", *entity_options])
     explain_result = runner.invoke(
         app,
-        ["explain", *entity_options, "--concept", "objective_reaction"],
+        ["explain", *entity_options, "--concept", "objective:model_objective"],
     )
 
     assert concepts_result.exit_code == 0, concepts_result.output
-    assert "objective_reaction\tconfidence=1.000" in concepts_result.output
+    assert (
+        "objective:model_objective\tModel objective\tconfidence=1.000"
+        in concepts_result.output
+    )
     assert explain_result.exit_code == 0, explain_result.output
-    assert "objective_coefficient" in explain_result.output
-    assert "matched=1.0" in explain_result.output
+    assert "objective_coefficient_nonzero" in explain_result.output
+    assert "observed=1.0" in explain_result.output
 
 
 def test_query_command_reports_missing_entity(cli_catalog):

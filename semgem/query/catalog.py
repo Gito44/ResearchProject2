@@ -115,14 +115,17 @@ class SemanticCatalog:
                     """,
                     """
                     SELECT s.internal_id, 'concept' AS match_field,
-                           NULL AS match_source, c.concept_name AS matched_value
+                           NULL AS match_source,
+                           c.concept_name || ' (' || c.preferred_label || ')'
+                               AS matched_value
                     FROM scoped AS s
                     JOIN semantic_concepts AS c ON c.entity_id = s.internal_id
                     WHERE LOWER(c.concept_name) LIKE ? ESCAPE '\\'
+                       OR LOWER(c.preferred_label) LIKE ? ESCAPE '\\'
                     """,
                 ]
             )
-            match_parameters.extend([pattern, pattern, pattern, pattern])
+            match_parameters.extend([pattern, pattern, pattern, pattern, pattern])
         else:
             match_queries.append(
                 """
@@ -242,7 +245,7 @@ class SemanticCatalog:
         entity = self._entity_row(model_id, entity_type, entity_id)
         rows = self.conn.execute(
             """
-            SELECT concept_name, confidence
+            SELECT concept_name, preferred_label, confidence
             FROM semantic_concepts
             WHERE entity_id = ?
             ORDER BY concept_name
@@ -250,7 +253,11 @@ class SemanticCatalog:
             (entity["internal_id"],),
         ).fetchall()
         return [
-            ConceptSummary(name=row["concept_name"], confidence=row["confidence"])
+            ConceptSummary(
+                name=row["concept_name"],
+                preferred_label=row["preferred_label"],
+                confidence=row["confidence"],
+            )
             for row in rows
         ]
 
@@ -264,7 +271,7 @@ class SemanticCatalog:
         entity = self._entity_row(model_id, entity_type, entity_id)
         concept = self.conn.execute(
             """
-            SELECT id, concept_name, confidence
+            SELECT id, concept_name, preferred_label, confidence
             FROM semantic_concepts
             WHERE entity_id = ? AND concept_name = ?
             """,
@@ -278,8 +285,9 @@ class SemanticCatalog:
 
         evidence_rows = self.conn.execute(
             """
-            SELECT evidence_type, target_field, matched_value,
-                   evidence_text, weight
+            SELECT evidence_code, source, observed_value,
+                   explanation, weight, annotation_id,
+                   assertion_id, relationship_id
             FROM concept_evidence
             WHERE concept_id = ?
             ORDER BY id
@@ -288,16 +296,20 @@ class SemanticCatalog:
         ).fetchall()
         evidence = tuple(
             EvidenceResult(
-                evidence_type=row["evidence_type"],
-                target_field=row["target_field"],
-                matched_value=row["matched_value"],
-                text=row["evidence_text"],
+                evidence_code=row["evidence_code"],
+                source=row["source"],
+                observed_value=row["observed_value"],
+                explanation=row["explanation"],
                 weight=row["weight"],
+                annotation_id=row["annotation_id"],
+                assertion_id=row["assertion_id"],
+                relationship_id=row["relationship_id"],
             )
             for row in evidence_rows
         )
         return ConceptExplanation(
             name=concept["concept_name"],
+            preferred_label=concept["preferred_label"],
             confidence=concept["confidence"],
             evidence=evidence,
         )

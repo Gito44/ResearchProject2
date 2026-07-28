@@ -24,6 +24,35 @@ This is a living list of work that has been intentionally postponed. Add items h
 - [ ] Add performance indexes after real query patterns and larger catalogs can be benchmarked.
 - [ ] Investigate PostgreSQL or another server database if concurrent access or substantially larger catalogs are required.
 
+## Deferred programming and scalability work
+
+- [ ] **High priority:** prevent cycles and repeated path expansion in the
+  recursive external-term relationship query before supporting more complex
+  relationship graphs.
+- [ ] **High priority for large catalogs:** process annotations, entities,
+  external evidence, candidates, and conclusions in batches instead of loading
+  the complete catalog into memory.
+- [ ] Consider SQLite staging tables for candidate evidence if batching becomes
+  necessary; avoid introducing duplicate JSON/CSV cache formats unless portable
+  pipeline checkpoints become a requirement.
+- [ ] Benchmark model import and replace high-volume per-row SQL operations with
+  batched inserts or cached identifier lookups where this materially improves
+  performance.
+- [ ] Decide whether a multi-model build should be atomic for the whole command
+  or explicitly retain and report successfully imported models when a later
+  model fails.
+- [ ] Split the growing `SemanticDatabase` class into smaller model,
+  enrichment, and semantic repositories when its responsibilities begin to
+  impede maintenance.
+- [ ] Strengthen type annotations at component boundaries and consider database
+  protocols for the pipeline and enrichment providers.
+- [ ] Add automated formatting, linting, static type checking, and coverage
+  reporting to the development toolchain.
+- [ ] Remove `pandas` from runtime dependencies unless a planned feature begins
+  using it.
+- [ ] Consider SQLite FTS5 if substring search becomes too slow on large
+  multi-model catalogs.
+
 ## Deferred gene support
 
 - [ ] Extend the minimal `genes` table when useful gene-specific fields are identified.
@@ -36,14 +65,19 @@ This is a living list of work that has been intentionally postponed. Add items h
 - [x] Implement the configurable evidence-engine foundation.
 - [x] Implement shared external-term, relationship-provenance, and
   enrichment-run storage.
-- [ ] Review the normalized dynamic-evidence contract before implementing
+- [x] Review the normalized dynamic-evidence contract before implementing
   provider evidence generation.
-- [ ] Review evidence weighting and confidence calculation before replacing the
+- [x] Review evidence weighting and confidence calculation before replacing the
   current prototype scoring behavior.
 - [ ] Complete the biological concept rule set after external enrichment data
   and provenance are available.
-- [ ] Implement SBO enrichment as a required v1 provider.
-- [ ] Implement optional KEGG REST enrichment as a required v1 provider.
+- [x] Expand the provisional v0.5 reaction types, exchange concepts, and
+  pathway vocabulary using the inspected SBO terms and model subsystems.
+- [x] Implement SBO enrichment as a required v1 provider.
+- [x] Implement optional KEGG REST enrichment as a required v1 provider.
+- [ ] Biologically calibrate the provisional v0.5 evidence weights, concept
+  thresholds, labels, and synonyms before v1.
+- [ ] Test unresolved-identifier rates before defining warning thresholds.
 - [ ] Evaluate MetaNetX enrichment as a v1 stretch goal.
 - [ ] Add CLI annotation filtering by source, for example
   `semgem annotations ... --source kegg.reaction`, to keep heavily annotated
@@ -59,6 +93,17 @@ This is a living list of work that has been intentionally postponed. Add items h
 
 ## Thesis evaluation
 
+- [x] Create a reproducible 118-pair manually curated development benchmark
+  with precision, recall, F1, and Wilson confidence intervals.
+- [x] Run a provisional 16-model, 37,017-reaction offline cohort evaluation
+  and record coverage, runtime, annotation availability, and pathway depth.
+- [x] Compare the curated benchmark against a portable exact-label baseline
+  and quantify the reduction in model-specific alias handling.
+- [x] Run threshold sensitivity analysis and retain 0.75 on the observed stable
+  plateau; record that KEGG reference-map scope cannot be corrected by weight
+  changes alone.
+- [ ] Obtain independent biological review of the curated benchmark and expand
+  its predeclared positive and negative examples before final thesis reporting.
 - [ ] Compare the same model set under different semantic evidence modes:
   model-only, default redistributable enrichment, and default enrichment plus
   KEGG.

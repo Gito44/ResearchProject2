@@ -1,84 +1,236 @@
-[concepts.objective_reaction]
-entity_type = "reaction"
-description = "Reaction used in the model objective."
-minimum_score = 1.0
+# v0.5 testing policy. All weights and thresholds are provisional and must be
+# calibrated through biological evaluation before v1.
 
-[[concepts.objective_reaction.rules]]
-evidence_type = "objective_coefficient"
+[scoring]
+default_threshold = 0.75
+
+[concept_thresholds]
+"objective:model_objective" = 1.00
+"objective:biomass_production" = 0.75
+"objective:atp_maintenance" = 0.80
+"reaction_type:exchange_reaction" = 0.75
+"reaction_type:demand_reaction" = 0.75
+"reaction_type:sink_reaction" = 0.75
+"exchange:oxygen" = 0.80
+"exchange:carbon_dioxide" = 0.80
+"exchange:glucose" = 0.80
+"exchange:acetate" = 0.80
+"exchange:ammonium" = 0.80
+"exchange:nitrate" = 0.80
+"exchange:phosphate" = 0.80
+"exchange:sulfate" = 0.80
+"exchange:photon" = 0.80
+
+[evidence.objective_coefficient_nonzero]
+source = "model"
+description = "The reaction has a nonzero objective coefficient."
+weight = 1.00
+
+[evidence.biomass_text_match]
+source = "model"
+description = "The reaction text contains a biomass label."
+weight = 0.50
+
+[evidence.biomass_objective_support]
+source = "model"
+description = "The reaction has a nonzero objective coefficient."
+weight = 0.50
+
+[evidence.exchange_id_pattern]
+source = "model"
+description = "The reaction identifier starts with EX_."
+weight = 0.95
+
+[evidence.exchange_text_match]
+source = "model"
+description = "The reaction text contains an exchange label."
+weight = 0.40
+
+[evidence.oxygen_exchange_pattern]
+source = "model"
+description = "An exchange-like reaction contains an oxygen label."
+weight = 0.95
+
+[evidence.specific_exchange_id_pattern]
+source = "model"
+description = "An exchange-reaction identifier contains a specific metabolite label."
+weight = 0.95
+
+[evidence.demand_id_pattern]
+source = "model"
+description = "The reaction identifier starts with the conventional DM_ demand prefix."
+weight = 0.95
+
+[evidence.sink_id_pattern]
+source = "model"
+description = "The reaction identifier starts with the conventional SK_ sink prefix."
+weight = 0.95
+
+[evidence.atp_maintenance_id_pattern]
+source = "model"
+description = "The reaction identifier contains the conventional ATPM maintenance label."
+weight = 0.95
+
+[evidence.model_name_label_match]
+source = "model"
+description = "The model entity name exactly matched a canonical label or synonym."
+weight = 0.70
+
+[evidence.model_subsystem_label_match]
+source = "model"
+description = "The reaction subsystem exactly matched a canonical label or synonym."
+weight = 0.80
+
+[evidence.sbo_term_label_match]
+source = "sbo"
+description = "The directly annotated SBO term label matched a canonical concept."
+weight = 0.95
+
+[evidence.sbo_ancestor_label_match]
+source = "sbo"
+description = "An ancestor of the annotated SBO term matched a canonical concept."
+weight = 0.55
+
+[evidence.kegg_pathway_label_match]
+source = "kegg"
+description = "A runtime KEGG pathway label matched a canonical concept."
+weight = 0.90
+
+[evidence.external_term_label_match]
+source = "external"
+description = "An external term label matched a canonical concept."
+weight = 0.80
+
+[[model_rules]]
+concept_id = "objective:model_objective"
+evidence_code = "objective_coefficient_nonzero"
+entity_type = "reaction"
 target_field = "objective_coefficient"
 operator = "nonzero"
-weight = 1.0
-text = "Reaction has a nonzero objective coefficient."
 
-
-[concepts.biomass_reaction]
+[[model_rules]]
+concept_id = "objective:biomass_production"
+evidence_code = "biomass_text_match"
 entity_type = "reaction"
-description = "Reaction representing biomass production or growth objective."
-minimum_score = 0.7
-
-[[concepts.biomass_reaction.rules]]
-evidence_type = "text_match"
 target_field = "combined_text"
 operator = "contains"
 value = "biomass"
-weight = 0.5
-text = "Reaction ID, name, or equation contains 'biomass'."
 
-[[concepts.biomass_reaction.rules]]
-evidence_type = "objective_coefficient"
+[[model_rules]]
+concept_id = "objective:biomass_production"
+evidence_code = "biomass_objective_support"
+entity_type = "reaction"
 target_field = "objective_coefficient"
 operator = "nonzero"
-weight = 0.4
-text = "Reaction has a nonzero objective coefficient."
 
-[[concepts.biomass_reaction.rules]]
-evidence_type = "sbo_annotation"
-target_field = "annotations.sbo"
-operator = "in"
-values = ["SBO:0000629"]
-weight = 0.6
-text = "Reaction has an SBO annotation associated with biomass production."
-
-
-[concepts.exchange_reaction]
+[[model_rules]]
+concept_id = "reaction_type:exchange_reaction"
+evidence_code = "exchange_id_pattern"
 entity_type = "reaction"
-description = "Reaction that exchanges metabolites with the model boundary."
-minimum_score = 0.5
-
-[[concepts.exchange_reaction.rules]]
-evidence_type = "id_pattern"
-target_field = "reaction_id"
+target_field = "original_id"
 operator = "startswith"
 value = "EX_"
-weight = 0.5
-text = "Reaction ID starts with EX_, a common exchange reaction pattern."
 
-[[concepts.exchange_reaction.rules]]
-evidence_type = "text_match"
+[[model_rules]]
+concept_id = "reaction_type:exchange_reaction"
+evidence_code = "exchange_text_match"
+entity_type = "reaction"
 target_field = "combined_text"
 operator = "contains"
 value = "exchange"
-weight = 0.4
-text = "Reaction ID, name, or equation contains 'exchange'."
 
-
-[concepts.oxygen_exchange]
+[[model_rules]]
+concept_id = "exchange:oxygen"
+evidence_code = "oxygen_exchange_pattern"
 entity_type = "reaction"
-description = "Exchange reaction involving oxygen."
-minimum_score = 0.8
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["EX_"], ["o2"]]
 
-[[concepts.oxygen_exchange.rules]]
-evidence_type = "id_pattern"
-target_field = "reaction_id"
+[[model_rules]]
+concept_id = "reaction_type:demand_reaction"
+evidence_code = "demand_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
 operator = "startswith"
-value = "EX_"
-weight = 0.4
-text = "Reaction ID starts with EX_, suggesting an exchange reaction."
+value = "DM_"
 
-[[concepts.oxygen_exchange.rules]]
-evidence_type = "text_match"
-target_field = "combined_text"
-operator = "contains_any"
-values = ["o2", "oxygen"]
-weight = 0.5
-text = "Reaction text contains oxygen or o2."
+[[model_rules]]
+concept_id = "reaction_type:sink_reaction"
+evidence_code = "sink_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "startswith"
+value = "SK_"
+
+[[model_rules]]
+concept_id = "objective:atp_maintenance"
+evidence_code = "atp_maintenance_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["ATPM"]]
+
+[[model_rules]]
+concept_id = "exchange:carbon_dioxide"
+evidence_code = "specific_exchange_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["EX_"], ["co2"]]
+
+[[model_rules]]
+concept_id = "exchange:glucose"
+evidence_code = "specific_exchange_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["EX_"], ["glc"]]
+
+[[model_rules]]
+concept_id = "exchange:acetate"
+evidence_code = "specific_exchange_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["EX_"], ["ac"]]
+
+[[model_rules]]
+concept_id = "exchange:ammonium"
+evidence_code = "specific_exchange_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["EX_"], ["nh4"]]
+
+[[model_rules]]
+concept_id = "exchange:nitrate"
+evidence_code = "specific_exchange_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["EX_"], ["no3"]]
+
+[[model_rules]]
+concept_id = "exchange:phosphate"
+evidence_code = "specific_exchange_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["EX_"], ["pi"]]
+
+[[model_rules]]
+concept_id = "exchange:sulfate"
+evidence_code = "specific_exchange_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["EX_"], ["so4"]]
+
+[[model_rules]]
+concept_id = "exchange:photon"
+evidence_code = "specific_exchange_id_pattern"
+entity_type = "reaction"
+target_field = "original_id"
+operator = "contains_all_normalized_groups"
+value_groups = [["EX_"], ["photon", "light"]]
