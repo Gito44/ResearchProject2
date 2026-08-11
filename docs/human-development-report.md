@@ -99,18 +99,20 @@ to the package.
 | Human-GEM measure | Result |
 |---|---:|
 | Eligible curated pathway reactions | 6,831 |
-| Exact/specific reactions recovered | 2,959 (43.32%) |
-| Broad-only compatible reactions | 2,644 (38.71%) |
-| Hierarchy-compatible reactions | 5,603 (82.02%) |
-| Reactions receiving any pathway conclusion | 8,316/12,931 (64.31%) |
-| Strict pair precision | 52.52% |
-| Strict pair recall | 43.32% |
-| Strict pair F1 | 47.48% |
+| Exact/specific reactions recovered | 3,478 (50.91%) |
+| Broad-only compatible reactions | 2,126 (31.12%) |
+| Hierarchy-compatible reactions | 5,604 (82.04%) |
+| Reactions receiving any pathway conclusion | 8,317/12,931 (64.32%) |
+| Strict pair precision | 56.14% |
+| Strict pair recall | 50.91% |
+| Strict pair F1 | 53.40% |
 
-The 82.02% result meets the provisional development coverage target, but it is
-not equivalent to 82.02% exact pathway classification. The large broad-only
-component is useful for navigation while identifying the main remaining task:
-improve specificity without sacrificing precision.
+The 82.04% result meets the provisional development coverage target, but it is
+not equivalent to 82.04% exact pathway classification. A second conservative
+specificity pass converted part of the broad-only component into exact
+assignments using transferable pharmacokinetic, N-glycan, and fatty-acid
+chemistry signals. Candidate peptide and aromatic-amino-acid fragments were
+rejected after they increased recall at unacceptable precision cost.
 
 As an initial regression check, the unchanged 118-pair curated benchmark over
 *E. coli* core, iJO1366, iJN678, and iMM904 produced 99.05% precision, 88.14%

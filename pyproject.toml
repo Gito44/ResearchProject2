@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semgem"
-version = "0.7.0"
+version = "0.7.1"
 description = "Semantic layer generator for SBML genome-scale metabolic models"
 requires-python = ">=3.11"
 dependencies = [

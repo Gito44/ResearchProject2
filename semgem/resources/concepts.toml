@@ -798,6 +798,12 @@ synonyms = [
     "high-mannose type N-glycan biosynthesis",
     "N-glycan metabolism",
 ]
+parents = ["pathway:glycan_metabolism"]
+anchors = [
+    "N-glycan", "chitobiosyldiphosphodolichol",
+    "dolichyl-diphosphooligosaccharide", "mannosyl-oligosaccharide",
+]
+anchor_fragments = ["diphosphodolichol", "dolichyl diphosphooligosaccharide"]
 
 [concepts."pathway:o_glycan_biosynthesis"]
 category = "pathway"
@@ -914,7 +920,11 @@ synonyms = [
     "metabolism of xenobiotics by cytochrome P450",
 ]
 parents = ["pathway:xenobiotic_metabolism"]
-anchors = ["xenobiotic", "drug metabolism"]
+anchors = [
+    "xenobiotic", "drug metabolism", "hepatocytes", "hepatic vein",
+    "portal blood", "enterocytes", "glucuronidation",
+    "microsomal epoxide", "unspecific monooxygenase",
+]
 
 [concepts."pathway:bile_acid_metabolism"]
 category = "pathway"

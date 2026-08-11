@@ -118,6 +118,26 @@ def test_explicit_semantic_anchors_match_reaction_and_metabolite_text():
     assert fragment_matches["pathway:lipid_metabolism"] == "anoyl-CoA"
 
 
+@pytest.mark.parametrize(
+    ("text", "expected_concept"),
+    [
+        (
+            "A microsomal epoxide is processed in hepatocytes",
+            "pathway:drug_and_xenobiotic_metabolism",
+        ),
+        (
+            "Dolichyl-diphosphooligosaccharide processing",
+            "pathway:n_glycan_biosynthesis",
+        ),
+    ],
+)
+def test_transferable_specific_pathway_anchors(text, expected_concept):
+    concepts, _ = loaded_policy()
+    matches = dict(ConceptRegistry(concepts).match_anchors(text))
+
+    assert expected_concept in matches
+
+
 def test_canonical_labels_and_synonyms_have_no_accidental_collisions():
     concepts, _ = loaded_policy()
     registry = ConceptRegistry(concepts)

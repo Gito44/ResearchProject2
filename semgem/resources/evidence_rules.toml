@@ -565,6 +565,25 @@ values = [
 ]
 
 [[model_rules]]
+concept_id = "pathway:fatty_acid_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "fatty acid",
+    "fatty acyl",
+    "beta-oxidation",
+    "beta oxidation",
+    "enoyl-coa hydratase",
+    "enoyl coenzyme a hydratase",
+    "hydroxyacyl-coa dehydrogenase",
+    "hydroxyacyl coenzyme a dehydrogenase",
+    "acyl-coa thioesterase",
+    "acyl coenzyme a thioesterase",
+]
+
+[[model_rules]]
 concept_id = "pathway:steroid_biosynthesis"
 evidence_code = "curated_reaction_name_pattern"
 entity_type = "reaction"
