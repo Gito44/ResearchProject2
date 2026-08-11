@@ -118,6 +118,16 @@ class ModelEvidenceGenerator:
             text = str(value).lower()
             matches = [str(item) for item in rule.values if str(item).lower() in text]
             return bool(matches), ", ".join(matches) if matches else None
+        if rule.operator == "contains_any_normalized":
+            if value is None:
+                return False, None
+            normalized_text = f" {normalize_label(str(value))} "
+            matches = []
+            for item in rule.values:
+                normalized_item = normalize_label(str(item))
+                if normalized_item and f" {normalized_item} " in normalized_text:
+                    matches.append(str(item))
+            return bool(matches), ", ".join(matches) if matches else None
         if rule.operator == "contains_all_groups":
             if value is None:
                 return False, None

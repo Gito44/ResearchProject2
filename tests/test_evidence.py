@@ -260,6 +260,36 @@ def test_family_inference_requires_name_and_standardized_metabolite_support():
     )
 
 
+def test_normalized_name_rules_support_encoded_reaction_names():
+    concepts, policy = loaded_policy()
+    database = StubDatabase(
+        entity_rows=[
+            {
+                "entity_id": 10,
+                "entity_type": "reaction",
+                "original_id": "LOCAL_CS",
+                "name": "R_citrate_synthase__mitochondrial",
+                "objective_coefficient": 0.0,
+                "equation": "",
+                "subsystem": "",
+                "metabolite_text": "",
+                "combined_text": "R_citrate_synthase__mitochondrial",
+            }
+        ]
+    )
+
+    candidates = ModelEvidenceGenerator(
+        policy,
+        ConceptRegistry(concepts),
+    ).generate(database)
+    conclusions = EvidenceScorer(policy, concepts).score(candidates)
+
+    assert any(
+        item.concept_id == "pathway:tricarboxylic_acid_cycle"
+        for item in conclusions
+    )
+
+
 def test_weak_name_match_alone_does_not_create_a_conclusion():
     concepts, policy = loaded_policy()
     database = StubDatabase(

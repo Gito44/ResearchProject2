@@ -674,3 +674,223 @@ values = [
     "udp-galactose:hydroxyproline",
     "prolyl 4-hydroxylase",
 ]
+
+[[model_rules]]
+concept_id = "pathway:aromatic_amino_acid_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "anthranilate phosphoribosyltransferase", "chorismate mutase",
+    "chorismate synthase", "hydroxyanthranilate dioxygenase",
+    "phenylpyruvate oxidoreductase", "indole acetaldehyde dehydrogenase",
+    "heptulosonate phosphate synthetase",
+    "hydroxyphenylpyruvate oxidoreductase",
+    "phenylacetaldehyde dehydrogenase",
+    "indole 3 acetaldehyde dehydrogenase",
+    "dehydroquinate synthase", "dehydroquinate dehydratase",
+    "formyl kynurenine amidohydrolase", "fumarylacetoacetase",
+    "homogentisate oxidoreductase", "indole 3 glycerol phosphate synthase",
+    "kynurenine monooxygenase", "maleylacetoacetate isomerase",
+    "prephenate dehydrogenase", "prephenate dehydratase",
+    "phosphoribosylanthranilate isomerase",
+    "phosphoshikimate carboxyvinyltransferase", "shikimate dehydrogenase",
+    "shikimate kinase",
+]
+
+[[model_rules]]
+concept_id = "pathway:folate_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "dihydroneopterin aldolase", "dihydropteroate synthase",
+    "dihydroneopterin monophosphate dephosphorylase",
+    "formyltetrahydrofolate cyclo ligase",
+    "formyltetrahydrofolate isomerase",
+    "methenyltetrahydrofolate cyclohydrolase",
+    "methylenetetrahydrofolate dehydrogenase",
+]
+
+[[model_rules]]
+concept_id = "pathway:purine_and_pyrimidine_biosynthesis"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "adenylosuccinate lyase", "phosphoribosylaminoimidazole carboxylase",
+    "phosphoribosylaminoimidazole synthase", "CTP synthase",
+    "IMP cyclohydrolase", "IMP dehydrogenase", "thymidylate synthase",
+]
+
+[[model_rules]]
+concept_id = "pathway:pyruvate_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "pyruvate decarboxylase", "lactate dehydrogenase",
+    "acetaldehyde dehydrogenase", "acetyl CoA hydrolase",
+]
+
+[[model_rules]]
+concept_id = "pathway:arginine_and_proline_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "arginase", "argininosuccinate lyase", "ornithine carbamoyltransferase",
+    "ornithine decarboxylase", "spermidine synthase", "spermine synthase",
+]
+
+[[model_rules]]
+concept_id = "pathway:branched_chain_amino_acid_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "acetolactate synthase", "acetohydroxy acid isomeroreductase",
+    "dihydroxy acid dehydratase", "isopropylmalate dehydratase",
+    "isopropylmalate hydratase", "isopropylmalate synthase",
+    "ketol acid reductoisomerase",
+]
+
+[[model_rules]]
+concept_id = "pathway:pantothenate_and_coa_biosynthesis"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "dephospho CoA kinase", "dehydropantoate reductase",
+    "pantothenate kinase", "phosphopantothenoylcysteine decarboxylase",
+    "pantetheine phosphate adenylyltransferase",
+]
+
+[[model_rules]]
+concept_id = "pathway:histidine_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "ATP phosphoribosyltransferase", "histidinol phosphatase",
+    "imidazoleglycerol phosphate dehydratase",
+    "phosphoribosyl AMP cyclohydrolase",
+    "phosphoribosyl ATP pyrophosphatase",
+]
+
+[[model_rules]]
+concept_id = "pathway:tricarboxylic_acid_cycle"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "citrate synthase", "aconitate hydratase", "isocitrate dehydrogenase",
+    "oxoglutarate dehydrogenase", "succinyl CoA synthetase",
+    "succinate CoA ligase", "succinate dehydrogenase",
+    "fumarate hydratase", "malate dehydrogenase",
+]
+
+[[model_rules]]
+concept_id = "pathway:alternate_carbon_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "butanediol dehydrogenase", "endopolygalacturonase",
+    "glucan branching enzyme", "glycogen phosphorylase",
+    "lactaldehyde dehydrogenase", "lactoylglutathione lyase",
+    "methylglyoxal synthase", "sorbitol dehydrogenase",
+    "sorbitol reductase", "sucrose hydrolyzing enzyme",
+    "trehalose phosphatase", "trehalase",
+]
+
+[[model_rules]]
+concept_id = "pathway:anaplerotic_reactions"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "isocitrate lyase", "malate synthase", "methylisocitrate lyase",
+    "methylcitrate synthase", "malic enzyme", "pyruvate carboxylase",
+    "phosphoenolpyruvate carboxykinase",
+]
+
+[[model_rules]]
+concept_id = "pathway:nucleotide_salvage"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "cytidylate kinase", "dTMP kinase", "inosine kinase",
+    "nucleotidase", "uridylate kinase",
+]
+
+[[model_rules]]
+concept_id = "pathway:cysteine_and_methionine_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "adenosylmethionine decarboxylase", "adenosylhomocysteinase",
+    "acetylhomoserine thiol lyase", "cystathionine lyase",
+    "methionine adenosyltransferase", "methionine synthase",
+    "methylthioadenosine phosphorylase", "cysteine synthase",
+    "serine O acetyltransferase", "phosphoadenylyl sulfate reductase",
+    "sulfite reductase",
+]
+
+[[model_rules]]
+concept_id = "pathway:riboflavin_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "dihydroxy butanone phosphate synthase", "FMN adenylyltransferase",
+    "FMN reductase", "GTP cyclohydrolase II", "riboflavin kinase",
+    "riboflavin synthase", "pyrimidinone phosphate deaminase",
+    "pyrimidinone phosphate reductase",
+]
+
+[[model_rules]]
+concept_id = "pathway:thiamine_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "hydroxymethyl methylpyrimidine synthetase",
+    "methylpyrimidine synthetase",
+    "hydroxyethylthiazole kinase", "hydroxymethylpyrimidine kinase",
+    "phosphomethylpyrimidine kinase", "thiamine diphosphatase",
+    "thiamine phosphatase", "thiazole phosphate synthesis",
+    "thiamine diphosphokinase", "thiamine diphosphate kinase",
+    "thiaminase", "thiamine phosphate kinase",
+    "thiamine phosphate diphosphorylase",
+]
+
+[[model_rules]]
+concept_id = "pathway:threonine_and_lysine_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any_normalized"
+values = [
+    "aminoadipate semialdehyde dehydrogenase",
+    "aminoadipate transaminase", "homoaconitate hydratase",
+    "homoisocitrate dehydrogenase", "saccharopine dehydrogenase",
+    "threonine aldolase", "threonine deaminase", "threonine synthase",
+]

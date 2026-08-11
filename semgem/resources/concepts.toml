@@ -303,6 +303,9 @@ anchors = [
     "oxidative phosphorylation", "respiratory chain",
     "electron transport chain", "ATP synthase", "cytochrome oxidase",
     "NADH dehydrogenase", "quinol monooxygenase",
+    "cytochrome c oxidase", "cytochrome c reductase",
+    "ubiquinol cytochrome c reductase",
+    "cytochrome c peroxidase",
     "dehydrogenase ubiquinone", "dehydrogenase menaquinone",
     "hydrogenase ubiquinone", "hydrogenase menaquinone",
     "reductase ubiquinol", "reductase menaquinol",
@@ -434,6 +437,11 @@ synonyms = [
     "serotonin and melatonin biosynthesis",
 ]
 parents = ["pathway:amino_acid_metabolism"]
+anchors = [
+    "anthranilate", "dehydroquinate", "fumarylacetoacetate",
+    "homogentisate", "kynurenine", "maleylacetoacetate", "prephenate",
+    "phosphoribosylanthranilate", "shikimate", "phenylpyruvate",
+]
 
 [concepts."pathway:folate_metabolism"]
 category = "pathway"
@@ -465,7 +473,7 @@ preferred_label = "Nucleotide salvage"
 description = "Reactions associated with nucleotide salvage."
 synonyms = ["nucleotide salvage pathway"]
 parents = ["pathway:nucleotide_metabolism"]
-anchors = ["nucleotide salvage", "nucleobase salvage"]
+anchors = ["nucleotide salvage", "nucleobase salvage", "nucleotidase"]
 
 [concepts."pathway:cell_envelope_biosynthesis"]
 category = "pathway"
@@ -664,6 +672,9 @@ category = "pathway"
 preferred_label = "Riboflavin metabolism"
 description = "Reactions associated with riboflavin metabolism."
 synonyms = ["vitamin B2 metabolism"]
+parents = ["pathway:cofactor_and_vitamin_metabolism"]
+anchors = ["riboflavin", "riboflavin kinase", "riboflavin synthase"]
+anchor_fragments = ["ribitylamino", "ribosylamino"]
 
 [concepts."pathway:vitamin_b6_metabolism"]
 category = "pathway"
@@ -676,6 +687,8 @@ category = "pathway"
 preferred_label = "Thiamine metabolism"
 description = "Reactions associated with thiamine metabolism."
 synonyms = []
+parents = ["pathway:cofactor_and_vitamin_metabolism"]
+anchors = ["thiamine", "thiamin", "thiazole phosphate"]
 
 [concepts."pathway:biotin_metabolism"]
 category = "pathway"
