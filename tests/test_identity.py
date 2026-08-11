@@ -33,6 +33,23 @@ class StubDatabase:
             },
         ]
 
+    @staticmethod
+    def metabolite_standardization_rows():
+        return [
+            {
+                "entity_id": 6,
+                "compartment_free_id": "glc__D",
+            },
+            {
+                "entity_id": 7,
+                "compartment_free_id": "C00031",
+            },
+            {
+                "entity_id": 8,
+                "compartment_free_id": "MNXM41",
+            },
+        ]
+
 
 def test_strict_external_accessions_are_inferred_without_becoming_annotations():
     inputs = infer_identity_inputs(StubDatabase())
@@ -42,6 +59,9 @@ def test_strict_external_accessions_are_inferred_without_becoming_annotations():
         AnnotationInputRecord(None, 2, "rhea", "15905"),
         AnnotationInputRecord(None, 3, "metanetx.reaction", "MNXR1"),
         AnnotationInputRecord(None, 4, "bigg.reaction", "PGI"),
+        AnnotationInputRecord(None, 6, "bigg.metabolite", "glc__D"),
+        AnnotationInputRecord(None, 7, "kegg.compound", "C00031"),
+        AnnotationInputRecord(None, 8, "metanetx.chemical", "MNXM41"),
     ]
 
 

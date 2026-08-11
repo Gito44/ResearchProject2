@@ -165,6 +165,103 @@ preferred_label = "Photon exchange"
 description = "An exchange reaction involving photons or light."
 synonyms = ["photon", "light exchange", "photon uptake"]
 
+[concepts."pathway:metabolism"]
+category = "pathway"
+preferred_label = "Metabolism"
+description = "Broad parent for metabolic pathways."
+synonyms = ["metabolic pathway"]
+
+[concepts."pathway:carbohydrate_metabolism"]
+category = "pathway"
+preferred_label = "Carbohydrate metabolism"
+description = "Broad parent for carbohydrate metabolic pathways."
+synonyms = ["carbohydrate metabolic process"]
+parents = ["pathway:metabolism"]
+anchors = [
+    "glucose", "fructose", "mannose", "galactose", "pentose",
+    "glucuronate", "glycolysis", "glycolytic",
+]
+
+[concepts."pathway:energy_metabolism"]
+category = "pathway"
+preferred_label = "Energy metabolism"
+description = "Broad parent for energy-producing and energy-converting pathways."
+synonyms = ["energy metabolic process"]
+parents = ["pathway:metabolism"]
+
+[concepts."pathway:lipid_metabolism"]
+category = "pathway"
+preferred_label = "Lipid metabolism"
+description = "Broad parent for lipid metabolic pathways."
+synonyms = ["lipid metabolic process"]
+parents = ["pathway:metabolism"]
+anchors = [
+    "fatty acid", "fatty acyl", "acyl-CoA", "acyl CoA",
+    "phosphatidyl", "diacylglycerol", "triacylglycerol", "ceramide",
+    "sphingosine", "cholesterol", "lanosterol", "steroid", "carnitine",
+    "leukotriene", "prostaglandin", "thromboxane", "arachidonate",
+]
+anchor_fragments = [
+    "enoyl-CoA", "anoyl-CoA", "oyl-CoA", "oylcarnitine", "acylcarnitine",
+    "enoyl Coenzyme A", "anoyl Coenzyme A", "oyl Coenzyme A",
+]
+
+[concepts."pathway:amino_acid_metabolism"]
+category = "pathway"
+preferred_label = "Amino acid metabolism"
+description = "Broad parent for amino-acid metabolic pathways."
+synonyms = ["amino acid metabolic process"]
+parents = ["pathway:metabolism"]
+anchors = [
+    "arginine", "proline", "glycine", "serine", "threonine", "cysteine",
+    "methionine", "alanine", "aspartate", "glutamate", "histidine",
+    "phenylalanine", "tyrosine", "tryptophan", "lysine", "leucine",
+    "isoleucine", "valine",
+]
+
+[concepts."pathway:cofactor_and_vitamin_metabolism"]
+category = "pathway"
+preferred_label = "Cofactor and vitamin metabolism"
+description = "Broad parent for cofactor and vitamin pathways."
+synonyms = ["metabolism of cofactors and vitamins"]
+parents = ["pathway:metabolism"]
+anchors = [
+    "folate", "tetrahydrofolate", "thiamine", "thiamin", "riboflavin",
+    "biotin", "pyridoxal", "pyridoxine", "cobalamin", "retinol", "retinal",
+    "lipoic acid", "lipoate",
+]
+
+[concepts."pathway:glycan_metabolism"]
+category = "pathway"
+preferred_label = "Glycan metabolism"
+description = "Broad parent for glycan biosynthesis and degradation pathways."
+synonyms = ["glycan biosynthesis and metabolism"]
+parents = ["pathway:metabolism"]
+anchors = [
+    "glycan", "glycosyl", "glycosaminoglycan", "chondroitin", "heparan",
+    "keratan", "oligosaccharide",
+]
+
+[concepts."pathway:xenobiotic_metabolism"]
+category = "pathway"
+preferred_label = "Xenobiotic metabolism"
+description = "Broad parent for drug and xenobiotic metabolic pathways."
+synonyms = ["xenobiotics biodegradation and metabolism"]
+parents = ["pathway:metabolism"]
+anchors = [
+    "xenobiotic", "drug metabolism", "hepatocytes", "hepatic vein",
+    "portal blood", "enterocytes", "glucuronidation", "microsomal epoxide",
+    "unspecific monooxygenase",
+]
+
+[concepts."pathway:protein_metabolism"]
+category = "pathway"
+preferred_label = "Protein metabolism"
+description = "Broad parent for protein synthesis, processing and degradation."
+synonyms = ["protein metabolic process"]
+parents = ["pathway:metabolism"]
+anchors = ["protein", "peptide"]
+
 [concepts."pathway:glycolysis"]
 category = "pathway"
 preferred_label = "Glycolysis"
@@ -174,6 +271,7 @@ synonyms = [
     "glycolysis / gluconeogenesis",
     "glycolysis and gluconeogenesis",
 ]
+parents = ["pathway:carbohydrate_metabolism", "pathway:energy_metabolism"]
 
 [concepts."pathway:tricarboxylic_acid_cycle"]
 category = "pathway"
@@ -184,25 +282,30 @@ synonyms = [
     "citrate cycle",
     "citric acid cycle",
     "citrate cycle (TCA cycle)",
+    "tricarboxylic acid cycle and glyoxylate/dicarboxylate metabolism",
 ]
+parents = ["pathway:carbohydrate_metabolism", "pathway:energy_metabolism"]
 
 [concepts."pathway:pentose_phosphate_pathway"]
 category = "pathway"
 preferred_label = "Pentose phosphate pathway"
 description = "Reactions associated with the pentose phosphate pathway."
 synonyms = ["pentose phosphate cycle", "hexose monophosphate shunt"]
+parents = ["pathway:carbohydrate_metabolism"]
 
 [concepts."pathway:oxidative_phosphorylation"]
 category = "pathway"
 preferred_label = "Oxidative phosphorylation"
 description = "Reactions associated with oxidative phosphorylation."
 synonyms = ["respiratory chain", "electron transport chain"]
+parents = ["pathway:energy_metabolism"]
 
 [concepts."pathway:pyruvate_metabolism"]
 category = "pathway"
 preferred_label = "Pyruvate metabolism"
 description = "Reactions associated with pyruvate metabolism."
 synonyms = []
+parents = ["pathway:carbohydrate_metabolism"]
 
 [concepts."pathway:glyoxylate_metabolism"]
 category = "pathway"
@@ -212,6 +315,7 @@ synonyms = [
     "glyoxylate cycle",
     "glyoxylate and dicarboxylate metabolism",
 ]
+parents = ["pathway:carbohydrate_metabolism"]
 
 [concepts."pathway:nitrogen_metabolism"]
 category = "pathway"
@@ -224,18 +328,43 @@ category = "pathway"
 preferred_label = "Glycerophospholipid metabolism"
 description = "Reactions associated with glycerophospholipid metabolism."
 synonyms = []
+parents = ["pathway:lipid_metabolism"]
 
 [concepts."pathway:fatty_acid_metabolism"]
 category = "pathway"
 preferred_label = "Fatty acid metabolism"
 description = "Reactions associated with fatty-acid metabolism."
-synonyms = ["fatty acid degradation", "fatty acid biosynthesis"]
+synonyms = [
+    "fatty acid degradation",
+    "fatty acid biosynthesis",
+    "fatty acid oxidation",
+    "acyl-CoA hydrolysis",
+    "fatty acid activation (cytosolic)",
+    "fatty acid activation (endoplasmic reticular)",
+    "fatty acid biosynthesis (even-chain)",
+    "fatty acid biosynthesis (odd-chain)",
+    "beta oxidation of branched-chain fatty acids (mitochondrial)",
+    "beta oxidation of di-unsaturated fatty acids (n-6) (mitochondrial)",
+    "beta oxidation of di-unsaturated fatty acids (n-6) (peroxisomal)",
+    "beta oxidation of even-chain fatty acids (mitochondrial)",
+    "beta oxidation of even-chain fatty acids (peroxisomal)",
+    "beta oxidation of odd-chain fatty acids (mitochondrial)",
+    "beta oxidation of odd-chain fatty acids (peroxisomal)",
+    "beta oxidation of phytanic acid (peroxisomal)",
+    "beta oxidation of poly-unsaturated fatty acids (mitochondrial)",
+    "beta oxidation of unsaturated fatty acids (n-7) (mitochondrial)",
+    "beta oxidation of unsaturated fatty acids (n-7) (peroxisomal)",
+    "beta oxidation of unsaturated fatty acids (n-9) (mitochondrial)",
+    "beta oxidation of unsaturated fatty acids (n-9) (peroxisomal)",
+]
+parents = ["pathway:lipid_metabolism"]
 
 [concepts."pathway:arginine_and_proline_metabolism"]
 category = "pathway"
 preferred_label = "Arginine and proline metabolism"
 description = "Reactions associated with arginine and proline metabolism."
 synonyms = []
+parents = ["pathway:amino_acid_metabolism"]
 
 [concepts."pathway:glycine_serine_and_threonine_metabolism"]
 category = "pathway"
@@ -245,6 +374,7 @@ synonyms = [
     "glycine and serine metabolism",
     "glycine, serine and threonine metabolism",
 ]
+parents = ["pathway:amino_acid_metabolism"]
 
 [concepts."pathway:branched_chain_amino_acid_metabolism"]
 category = "pathway"
@@ -254,6 +384,7 @@ synonyms = [
     "valine, leucine, and isoleucine metabolism",
     "valine, leucine and isoleucine biosynthesis",
 ]
+parents = ["pathway:amino_acid_metabolism"]
 
 [concepts."pathway:cysteine_and_methionine_metabolism"]
 category = "pathway"
@@ -263,6 +394,7 @@ synonyms = [
     "cysteine metabolism",
     "methionine metabolism",
 ]
+parents = ["pathway:amino_acid_metabolism"]
 
 [concepts."pathway:alanine_aspartate_and_glutamate_metabolism"]
 category = "pathway"
@@ -272,12 +404,14 @@ synonyms = [
     "alanine and aspartate metabolism",
     "glutamate metabolism",
 ]
+parents = ["pathway:amino_acid_metabolism"]
 
 [concepts."pathway:histidine_metabolism"]
 category = "pathway"
 preferred_label = "Histidine metabolism"
 description = "Reactions associated with histidine metabolism."
 synonyms = []
+parents = ["pathway:amino_acid_metabolism"]
 
 [concepts."pathway:aromatic_amino_acid_metabolism"]
 category = "pathway"
@@ -289,13 +423,16 @@ synonyms = [
     "tyrosine metabolism",
     "tryptophan metabolism",
     "phenylalanine, tyrosine and tryptophan biosynthesis",
+    "serotonin and melatonin biosynthesis",
 ]
+parents = ["pathway:amino_acid_metabolism"]
 
 [concepts."pathway:folate_metabolism"]
 category = "pathway"
 preferred_label = "Folate metabolism"
 description = "Reactions associated with folate metabolism."
 synonyms = ["one carbon pool by folate"]
+parents = ["pathway:cofactor_and_vitamin_metabolism"]
 
 [concepts."pathway:cofactor_biosynthesis"]
 category = "pathway"
@@ -305,6 +442,7 @@ synonyms = [
     "cofactor and prosthetic group biosynthesis",
     "biosynthesis of cofactors",
 ]
+parents = ["pathway:cofactor_and_vitamin_metabolism"]
 
 [concepts."pathway:alternate_carbon_metabolism"]
 category = "pathway"
@@ -390,6 +528,7 @@ category = "pathway"
 preferred_label = "Carbon fixation"
 description = "Reactions associated with biological carbon fixation."
 synonyms = [
+    "CO2 fixation",
     "carbon fixation in photosynthetic organisms",
     "carbon fixation by Calvin cycle",
     "other carbon fixation pathways",
@@ -414,18 +553,28 @@ category = "pathway"
 preferred_label = "Nucleotide metabolism"
 description = "Reactions associated with nucleotide metabolism."
 synonyms = []
+parents = ["pathway:metabolism"]
+anchors = [
+    "nucleotide", "nucleoside", "adenosine", "guanosine", "cytidine",
+    "uridine", "deoxyadenosine", "deoxyguanosine", "deoxycytidine",
+    "deoxyuridine",
+]
 
 [concepts."pathway:purine_metabolism"]
 category = "pathway"
 preferred_label = "Purine metabolism"
 description = "Reactions associated with purine metabolism."
 synonyms = []
+parents = ["pathway:nucleotide_metabolism"]
+anchors = ["purine", "adenine", "guanine", "hypoxanthine", "xanthine", "urate"]
 
 [concepts."pathway:pyrimidine_metabolism"]
 category = "pathway"
 preferred_label = "Pyrimidine metabolism"
 description = "Reactions associated with pyrimidine metabolism."
 synonyms = []
+parents = ["pathway:nucleotide_metabolism"]
+anchors = ["pyrimidine", "cytosine", "uracil", "thymine", "orotate"]
 
 [concepts."pathway:amino_acid_biosynthesis"]
 category = "pathway"
@@ -459,7 +608,7 @@ synonyms = []
 category = "pathway"
 preferred_label = "Starch and sucrose metabolism"
 description = "Reactions associated with starch and sucrose metabolism."
-synonyms = []
+synonyms = ["starch metabolism"]
 
 [concepts."pathway:glutathione_metabolism"]
 category = "pathway"
@@ -495,7 +644,7 @@ synonyms = []
 category = "pathway"
 preferred_label = "Riboflavin metabolism"
 description = "Reactions associated with riboflavin metabolism."
-synonyms = []
+synonyms = ["vitamin B2 metabolism"]
 
 [concepts."pathway:vitamin_b6_metabolism"]
 category = "pathway"
@@ -519,13 +668,14 @@ synonyms = []
 category = "pathway"
 preferred_label = "Pantothenate and CoA biosynthesis"
 description = "Reactions associated with pantothenate and coenzyme A biosynthesis."
-synonyms = []
+synonyms = ["pantothenate and CoA metabolism"]
 
 [concepts."pathway:glycerolipid_metabolism"]
 category = "pathway"
 preferred_label = "Glycerolipid metabolism"
 description = "Reactions associated with glycerolipid metabolism."
-synonyms = []
+synonyms = ["acylglycerides metabolism", "triacylglycerol synthesis"]
+parents = ["pathway:lipid_metabolism"]
 
 [concepts."pathway:terpenoid_backbone_biosynthesis"]
 category = "pathway"
@@ -579,7 +729,7 @@ synonyms = ["degradation of aromatic compounds"]
 category = "pathway"
 preferred_label = "Ascorbate and aldarate metabolism"
 description = "Reactions associated with ascorbate and aldarate metabolism."
-synonyms = []
+synonyms = ["vitamin C metabolism"]
 
 [concepts."pathway:d_amino_acid_metabolism"]
 category = "pathway"
@@ -591,7 +741,7 @@ synonyms = []
 category = "pathway"
 preferred_label = "Ubiquinone and other terpenoid-quinone biosynthesis"
 description = "Reactions associated with ubiquinone and related quinone biosynthesis."
-synonyms = ["ubiquinone biosynthesis"]
+synonyms = ["ubiquinone biosynthesis", "ubiquinone synthesis"]
 
 [concepts."pathway:beta_alanine_metabolism"]
 category = "pathway"
@@ -603,7 +753,7 @@ synonyms = ["β-alanine metabolism"]
 category = "pathway"
 preferred_label = "Selenocompound metabolism"
 description = "Reactions associated with selenium-containing compounds."
-synonyms = []
+synonyms = ["selenoamino acid metabolism"]
 
 [concepts."pathway:taurine_and_hypotaurine_metabolism"]
 category = "pathway"
@@ -621,25 +771,43 @@ synonyms = ["valine, leucine and isoleucine degradation"]
 category = "pathway"
 preferred_label = "Inositol phosphate metabolism"
 description = "Reactions associated with inositol-phosphate metabolism."
-synonyms = []
+synonyms = ["phosphatidylinositol phosphate metabolism"]
 
 [concepts."pathway:steroid_biosynthesis"]
 category = "pathway"
 preferred_label = "Steroid biosynthesis"
 description = "Reactions associated with steroid biosynthesis."
-synonyms = ["biosynthesis of steroids"]
+synonyms = [
+    "biosynthesis of steroids",
+    "steroid metabolism",
+    "androgen metabolism",
+    "estrogen metabolism",
+    "glucocorticoid biosynthesis",
+]
+parents = ["pathway:lipid_metabolism"]
+anchors = [
+    "steroid", "testosterone", "androgen", "estrogen", "estradiol",
+    "estrone", "progesterone", "pregnenolone", "cortisol",
+]
 
 [concepts."pathway:n_glycan_biosynthesis"]
 category = "pathway"
 preferred_label = "N-Glycan biosynthesis"
 description = "Reactions associated with N-glycan biosynthesis."
-synonyms = ["high-mannose type N-glycan biosynthesis"]
+synonyms = [
+    "high-mannose type N-glycan biosynthesis",
+    "N-glycan metabolism",
+]
 
 [concepts."pathway:o_glycan_biosynthesis"]
 category = "pathway"
 preferred_label = "O-Glycan biosynthesis"
 description = "Reactions associated with O-glycan biosynthesis."
-synonyms = []
+synonyms = [
+    "O-glycan metabolism",
+    "mucin type O-glycan biosynthesis",
+    "other types of O-glycan biosynthesis",
+]
 
 [concepts."pathway:folate_biosynthesis"]
 category = "pathway"
@@ -651,22 +819,387 @@ synonyms = []
 category = "pathway"
 preferred_label = "Biosynthesis of unsaturated fatty acids"
 description = "Reactions associated with unsaturated-fatty-acid biosynthesis."
-synonyms = ["unsaturated fatty acid biosynthesis"]
+synonyms = [
+    "unsaturated fatty acid biosynthesis",
+    "fatty acid biosynthesis (unsaturated)",
+    "fatty acid desaturation (even-chain)",
+    "fatty acid desaturation (odd-chain)",
+]
 
 [concepts."pathway:sphingolipid_metabolism"]
 category = "pathway"
 preferred_label = "Sphingolipid metabolism"
 description = "Reactions associated with sphingolipid metabolism."
 synonyms = []
+parents = ["pathway:lipid_metabolism"]
+anchors = ["sphingolipid", "sphingosine", "ceramide", "sphingomyelin"]
 
 [concepts."pathway:retinol_metabolism"]
 category = "pathway"
 preferred_label = "Retinol metabolism"
 description = "Reactions associated with retinol metabolism."
-synonyms = []
+synonyms = ["vitamin A metabolism"]
+parents = ["pathway:cofactor_and_vitamin_metabolism"]
+anchors = ["retinol", "retinal", "retinoate", "retinyl"]
 
 [concepts."pathway:polyamine_metabolism"]
 category = "pathway"
 preferred_label = "Polyamine metabolism"
 description = "Reactions associated with polyamine metabolism."
 synonyms = []
+
+[concepts."pathway:fatty_acid_elongation"]
+category = "pathway"
+preferred_label = "Fatty acid elongation"
+description = "Reactions associated with elongation of fatty-acid chains."
+synonyms = [
+    "fatty acid elongation in mitochondria",
+    "fatty acid elongation (even-chain)",
+    "fatty acid elongation (odd-chain)",
+]
+parents = ["pathway:fatty_acid_metabolism"]
+anchors = ["fatty acid elongation"]
+
+[concepts."pathway:linoleic_acid_metabolism"]
+category = "pathway"
+preferred_label = "Linoleic acid metabolism"
+description = "Reactions associated with linoleic-acid metabolism."
+synonyms = ["linoleate metabolism", "omega-6 fatty acid metabolism"]
+parents = ["pathway:fatty_acid_metabolism"]
+anchors = ["linoleate", "linoleic acid", "omega 6 fatty acid"]
+
+[concepts."pathway:protein_synthesis"]
+category = "pathway"
+preferred_label = "Protein synthesis"
+description = "Reactions associated with translation and protein synthesis."
+synonyms = []
+
+[concepts."pathway:urea_cycle"]
+category = "pathway"
+preferred_label = "Urea cycle and amino-group metabolism"
+description = "Reactions associated with the urea cycle and amino-group metabolism."
+synonyms = ["urea cycle and metabolism of amino groups", "urea cycle"]
+
+[concepts."pathway:urea_degradation"]
+category = "pathway"
+preferred_label = "Urea degradation"
+description = "Reactions associated with urea degradation."
+synonyms = []
+
+[concepts."pathway:cofactor_recycling"]
+category = "pathway"
+preferred_label = "Cofactor recycling"
+description = "Reactions that regenerate or recycle metabolic cofactors."
+synonyms = []
+
+[concepts."pathway:drug_metabolism_cytochrome_p450"]
+category = "pathway"
+preferred_label = "Drug metabolism - cytochrome P450"
+description = "Reactions associated with cytochrome-P450-mediated xenobiotic metabolism."
+synonyms = ["cytochrome P450 drug metabolism"]
+
+[concepts."pathway:drug_metabolism_other_enzymes"]
+category = "pathway"
+preferred_label = "Drug metabolism - other enzymes"
+description = "Reactions associated with non-P450 xenobiotic metabolism."
+synonyms = ["other enzyme drug metabolism"]
+
+[concepts."pathway:drug_and_xenobiotic_metabolism"]
+category = "pathway"
+preferred_label = "Drug and xenobiotic metabolism"
+description = "Reactions associated with metabolism of drugs and other xenobiotics."
+synonyms = [
+    "drug metabolism",
+    "xenobiotics metabolism",
+    "metabolism of xenobiotics by cytochrome P450",
+]
+parents = ["pathway:xenobiotic_metabolism"]
+anchors = ["xenobiotic", "drug metabolism"]
+
+[concepts."pathway:bile_acid_metabolism"]
+category = "pathway"
+preferred_label = "Bile acid metabolism"
+description = "Reactions associated with bile-acid synthesis and recycling."
+synonyms = [
+    "bile acid biosynthesis",
+    "bile acid recycling",
+    "primary bile acid biosynthesis",
+]
+parents = ["pathway:lipid_metabolism"]
+anchors = ["bile acid", "cholate", "choloyl", "glycocholate", "taurocholate"]
+anchor_fragments = ["cholestan", "cholestane"]
+
+[concepts."pathway:cholesterol_metabolism"]
+category = "pathway"
+preferred_label = "Cholesterol metabolism"
+description = "Reactions associated with cholesterol synthesis, conversion, and ester turnover."
+synonyms = [
+    "cholesterol biosynthesis 1 (Bloch pathway)",
+    "cholesterol biosynthesis 2",
+    "cholesterol biosynthesis 3 (Kandustch-Russell pathway)",
+    "formation and hydrolysis of cholesterol esters",
+]
+parents = ["pathway:lipid_metabolism"]
+anchors = ["cholesterol", "cholesteryl", "lanosterol", "lathosterol"]
+
+[concepts."pathway:eicosanoid_metabolism"]
+category = "pathway"
+preferred_label = "Eicosanoid metabolism"
+description = "Reactions associated with eicosanoid synthesis and conversion."
+synonyms = [
+    "arachidonic acid metabolism",
+    "leukotriene metabolism",
+    "prostaglandin biosynthesis",
+]
+parents = ["pathway:lipid_metabolism"]
+anchors = [
+    "eicosanoid", "leukotriene", "prostaglandin", "thromboxane",
+    "arachidonate", "arachidonic acid", "HETE", "LTB4", "LTC4", "LTD4",
+    "LTE4", "HEPE",
+]
+anchor_fragments = ["lipoxin"]
+
+[concepts."pathway:carnitine_shuttle"]
+category = "pathway"
+preferred_label = "Carnitine shuttle"
+description = "Reactions associated with carnitine-dependent acyl transport."
+synonyms = [
+    "carnitine shuttle (cytosolic)",
+    "carnitine shuttle (endoplasmic reticular)",
+    "carnitine shuttle (mitochondrial)",
+    "carnitine shuttle (peroxisomal)",
+]
+parents = ["pathway:lipid_metabolism"]
+anchors = ["carnitine", "acylcarnitine"]
+
+[concepts."pathway:peptide_metabolism"]
+category = "pathway"
+preferred_label = "Peptide metabolism"
+description = "Reactions associated with peptide synthesis, modification, and degradation."
+synonyms = []
+parents = ["pathway:protein_metabolism"]
+anchors = ["peptide", "glycyl", "leucyl", "alanyl", "prolinyl"]
+
+[concepts."pathway:glycosphingolipid_metabolism"]
+category = "pathway"
+preferred_label = "Glycosphingolipid metabolism"
+description = "Reactions associated with glycosphingolipid synthesis and turnover."
+synonyms = [
+    "glycosphingolipid biosynthesis-ganglio series",
+    "glycosphingolipid biosynthesis-globo series",
+    "glycosphingolipid biosynthesis-lacto and neolacto series",
+    "glycosphingolipid biosynthesis - ganglio series",
+    "glycosphingolipid biosynthesis - globo and isoglobo series",
+]
+parents = ["pathway:lipid_metabolism", "pathway:glycan_metabolism"]
+anchors = ["glycosphingolipid", "globotriaosylceramide", "globoside", "ganglioside"]
+
+[concepts."pathway:glycosaminoglycan_metabolism"]
+category = "pathway"
+preferred_label = "Glycosaminoglycan metabolism"
+description = "Reactions associated with glycosaminoglycan synthesis and degradation."
+synonyms = [
+    "chondroitin / heparan sulfate biosynthesis",
+    "chondroitin sulfate degradation",
+    "heparan sulfate degradation",
+    "keratan sulfate biosynthesis",
+    "keratan sulfate degradation",
+    "glycosaminoglycan biosynthesis - heparan sulfate / heparin",
+    "glycosaminoglycan biosynthesis - chondroitin sulfate / dermatan sulfate",
+]
+parents = ["pathway:glycan_metabolism"]
+anchors = ["glycosaminoglycan", "chondroitin", "heparan", "keratan sulfate"]
+
+[concepts."pathway:protein_degradation"]
+category = "pathway"
+preferred_label = "Protein degradation"
+description = "Reactions associated with protein degradation and proteolysis."
+synonyms = []
+parents = ["pathway:protein_metabolism"]
+anchors = ["protein degradation", "proteolysis"]
+
+[concepts."pathway:protein_processing"]
+category = "pathway"
+preferred_label = "Protein processing"
+description = "Reactions associated with protein assembly and post-translational modification."
+synonyms = ["protein assembly", "protein modification"]
+parents = ["pathway:protein_metabolism"]
+anchors = ["protein assembly", "protein modification", "protein linked"]
+
+[concepts."pathway:vitamin_d_metabolism"]
+category = "pathway"
+preferred_label = "Vitamin D metabolism"
+description = "Reactions associated with vitamin D metabolism."
+synonyms = []
+
+[concepts."pathway:vitamin_e_metabolism"]
+category = "pathway"
+preferred_label = "Vitamin E metabolism"
+description = "Reactions associated with vitamin E metabolism."
+synonyms = []
+parents = ["pathway:cofactor_and_vitamin_metabolism"]
+anchors = ["vitamin E", "tocopherol", "tocotrienol"]
+
+[concepts."pathway:vitamin_b12_metabolism"]
+category = "pathway"
+preferred_label = "Vitamin B12 metabolism"
+description = "Reactions associated with cobalamin metabolism."
+synonyms = ["cobalamin metabolism"]
+
+[concepts."pathway:reactive_oxygen_species_detoxification"]
+category = "pathway"
+preferred_label = "Reactive oxygen species detoxification"
+description = "Reactions that detoxify reactive oxygen species."
+synonyms = ["ROS detoxification"]
+
+[concepts."pathway:biopterin_metabolism"]
+category = "pathway"
+preferred_label = "Biopterin metabolism"
+description = "Reactions associated with biopterin metabolism."
+synonyms = []
+
+[concepts."pathway:blood_group_biosynthesis"]
+category = "pathway"
+preferred_label = "Blood group biosynthesis"
+description = "Reactions associated with synthesis of blood-group glycans."
+synonyms = []
+
+[concepts."pathway:ether_lipid_metabolism"]
+category = "pathway"
+preferred_label = "Ether lipid metabolism"
+description = "Reactions associated with ether-lipid metabolism."
+synonyms = []
+parents = ["pathway:lipid_metabolism"]
+anchors = ["ether lipid", "alkylglycerol", "radyl"]
+
+[concepts."pathway:gpi_anchor_biosynthesis"]
+category = "pathway"
+preferred_label = "Glycosylphosphatidylinositol anchor biosynthesis"
+description = "Reactions associated with GPI-anchor biosynthesis."
+synonyms = ["glycosylphosphatidylinositol (GPI)-anchor biosynthesis"]
+
+[concepts."pathway:heme_degradation"]
+category = "pathway"
+preferred_label = "Heme degradation"
+description = "Reactions associated with heme degradation."
+synonyms = []
+
+[concepts."pathway:lipoic_acid_metabolism"]
+category = "pathway"
+preferred_label = "Lipoic acid metabolism"
+description = "Reactions associated with lipoic-acid metabolism."
+synonyms = []
+
+[concepts."pathway:lysine_metabolism"]
+category = "pathway"
+preferred_label = "Lysine metabolism"
+description = "Reactions associated with lysine synthesis and degradation."
+synonyms = []
+
+[concepts."pathway:other_amino_acid_metabolism"]
+category = "pathway"
+preferred_label = "Metabolism of other amino acids"
+description = "Reactions associated with amino-acid pathways outside the major canonical groups."
+synonyms = []
+
+[concepts."pathway:omega_3_fatty_acid_metabolism"]
+category = "pathway"
+preferred_label = "Omega-3 fatty acid metabolism"
+description = "Reactions associated with omega-3 fatty-acid metabolism."
+synonyms = []
+parents = ["pathway:fatty_acid_metabolism"]
+anchors = [
+    "omega-3 fatty acid", "eicosapentaenoate", "docosahexaenoate", "HEPE",
+    "HpEPE", "EPE", "EPA", "DHA", "THA-CoA",
+]
+
+[hierarchy.parents]
+"pathway:metabolism" = [
+    "pathway:nitrogen_metabolism",
+    "pathway:sulfur_metabolism",
+    "pathway:selenocompound_metabolism",
+    "pathway:reactive_oxygen_species_detoxification",
+]
+"pathway:carbohydrate_metabolism" = [
+    "pathway:alternate_carbon_metabolism",
+    "pathway:methylglyoxal_metabolism",
+    "pathway:anaplerotic_reactions",
+    "pathway:carbon_fixation",
+    "pathway:nucleotide_sugar_metabolism",
+    "pathway:fructose_and_mannose_metabolism",
+    "pathway:galactose_metabolism",
+    "pathway:starch_and_sucrose_metabolism",
+    "pathway:butanoate_metabolism",
+    "pathway:propanoate_metabolism",
+    "pathway:two_oxocarboxylic_acid_metabolism",
+    "pathway:pentose_and_glucuronate_interconversions",
+    "pathway:inositol_phosphate_metabolism",
+]
+"pathway:energy_metabolism" = [
+    "pathway:photosynthesis",
+    "pathway:methane_metabolism",
+]
+"pathway:lipid_metabolism" = [
+    "pathway:membrane_lipid_metabolism",
+    "pathway:carotenoid_biosynthesis",
+    "pathway:terpenoid_backbone_biosynthesis",
+    "pathway:unsaturated_fatty_acid_biosynthesis",
+    "pathway:omega_3_fatty_acid_metabolism",
+]
+"pathway:amino_acid_metabolism" = [
+    "pathway:amino_acid_biosynthesis",
+    "pathway:threonine_and_lysine_metabolism",
+    "pathway:arginine_biosynthesis",
+    "pathway:lysine_biosynthesis",
+    "pathway:lysine_degradation",
+    "pathway:d_amino_acid_metabolism",
+    "pathway:beta_alanine_metabolism",
+    "pathway:taurine_and_hypotaurine_metabolism",
+    "pathway:branched_chain_amino_acid_degradation",
+    "pathway:polyamine_metabolism",
+    "pathway:urea_cycle",
+    "pathway:urea_degradation",
+    "pathway:lysine_metabolism",
+    "pathway:other_amino_acid_metabolism",
+]
+"pathway:nucleotide_metabolism" = [
+    "pathway:nucleotide_salvage",
+    "pathway:purine_and_pyrimidine_biosynthesis",
+]
+"pathway:cofactor_and_vitamin_metabolism" = [
+    "pathway:porphyrin_and_chlorophyll_metabolism",
+    "pathway:glutathione_metabolism",
+    "pathway:nicotinate_and_nicotinamide_metabolism",
+    "pathway:riboflavin_metabolism",
+    "pathway:vitamin_b6_metabolism",
+    "pathway:thiamine_metabolism",
+    "pathway:biotin_metabolism",
+    "pathway:pantothenate_and_coa_biosynthesis",
+    "pathway:ubiquinone_biosynthesis",
+    "pathway:folate_biosynthesis",
+    "pathway:ascorbate_and_aldarate_metabolism",
+    "pathway:cofactor_recycling",
+    "pathway:vitamin_d_metabolism",
+    "pathway:vitamin_b12_metabolism",
+    "pathway:biopterin_metabolism",
+    "pathway:heme_degradation",
+    "pathway:lipoic_acid_metabolism",
+]
+"pathway:glycan_metabolism" = [
+    "pathway:cell_envelope_biosynthesis",
+    "pathway:lipopolysaccharide_metabolism",
+    "pathway:murein_metabolism",
+    "pathway:n_glycan_biosynthesis",
+    "pathway:o_glycan_biosynthesis",
+    "pathway:blood_group_biosynthesis",
+    "pathway:gpi_anchor_biosynthesis",
+]
+"pathway:xenobiotic_metabolism" = [
+    "pathway:aromatic_compound_degradation",
+    "pathway:drug_metabolism_cytochrome_p450",
+    "pathway:drug_metabolism_other_enzymes",
+]
+"pathway:protein_metabolism" = [
+    "pathway:trna_charging",
+    "pathway:protein_synthesis",
+]

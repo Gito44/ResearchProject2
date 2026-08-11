@@ -9,6 +9,9 @@ class ConceptDefinition:
     preferred_label: str
     description: str = ""
     synonyms: tuple[str, ...] = ()
+    parents: tuple[str, ...] = ()
+    anchors: tuple[str, ...] = ()
+    anchor_fragments: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

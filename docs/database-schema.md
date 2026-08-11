@@ -48,7 +48,10 @@ Numeric entity IDs are internal database keys, not permanent public identifiers.
 ## Type-specific records
 
 - `reactions` stores bounds, objective coefficients, subsystem text, gene-reaction rules, and equations.
-- `metabolites` stores compartment, formula, and charge.
+- `metabolites` stores the original compartment, a conservatively
+  compartment-stripped identifier, a normalized comparison name, formula, and
+  charge. The original model identifier and name remain unchanged in
+  `entities`; standardization is an additional comparison layer.
 - `genes` is deliberately minimal and can be extended when useful gene-specific fields are identified.
 
 The Python database layer validates that type-specific records reference an entity of the correct type. SQL triggers are deferred as possible hardening for external database writers.

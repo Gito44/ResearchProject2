@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS reactions (
 CREATE TABLE IF NOT EXISTS metabolites (
     entity_id INTEGER PRIMARY KEY,
     compartment TEXT,
+    compartment_free_id TEXT NOT NULL,
+    normalized_name TEXT NOT NULL,
     formula TEXT,
     charge INTEGER,
     FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
@@ -185,4 +187,4 @@ CREATE TABLE IF NOT EXISTS concept_evidence (
     CHECK (weight >= 0.0 AND weight <= 1.0)
 );
 
-PRAGMA user_version = 4;
+PRAGMA user_version = 5;

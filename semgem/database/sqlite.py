@@ -47,10 +47,10 @@ class SemanticDatabase:
         ).fetchone()
         if existing_models_table is not None:
             schema_version = self.conn.execute("PRAGMA user_version").fetchone()[0]
-            if schema_version != 4:
+            if schema_version != 5:
                 raise IncompatibleSchemaError(
                     f"The existing database uses SemGEM schema version "
-                    f"{schema_version}; version 4 is required. Create a new "
+                    f"{schema_version}; version 5 is required. Create a new "
                     "catalog and rebuild it from the source model files."
                 )
             columns = {
@@ -266,12 +266,21 @@ class SemanticDatabase:
             self._assert_entity_type(entity_id, "metabolite")
             self.conn.execute(
                 """
-                INSERT INTO metabolites (entity_id, compartment, formula, charge)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO metabolites (
+                    entity_id,
+                    compartment,
+                    compartment_free_id,
+                    normalized_name,
+                    formula,
+                    charge
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     entity_id,
                     metabolite.compartment,
+                    metabolite.compartment_free_id,
+                    metabolite.normalized_name,
                     metabolite.formula,
                     metabolite.charge,
                 ),
@@ -720,6 +729,69 @@ class SemanticDatabase:
             ).fetchall()
         }
 
+    def metabolite_standardization_rows(self) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            SELECT entity.id,
+                   entity.model_id,
+                   entity.original_id,
+                   entity.name,
+                   metabolite.compartment,
+                   metabolite.compartment_free_id,
+                   metabolite.normalized_name,
+                   metabolite.formula,
+                   metabolite.charge
+            FROM metabolites AS metabolite
+            JOIN entities AS entity ON entity.id = metabolite.entity_id
+            ORDER BY entity.id
+            """
+        ).fetchall()
+        return [
+            {
+                "entity_id": row[0],
+                "model_id": row[1],
+                "original_id": row[2],
+                "name": row[3],
+                "compartment": row[4],
+                "compartment_free_id": row[5],
+                "normalized_name": row[6],
+                "formula": row[7],
+                "charge": row[8],
+            }
+            for row in rows
+        ]
+
+    def reaction_stoichiometry_rows(self) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            SELECT reaction_entity.id,
+                   reaction_entity.original_id,
+                   metabolite_entity.id,
+                   metabolite.compartment_free_id,
+                   metabolite.compartment,
+                   link.coefficient
+            FROM reaction_metabolites AS link
+            JOIN entities AS reaction_entity
+              ON reaction_entity.id = link.reaction_entity_id
+            JOIN metabolites AS metabolite
+              ON metabolite.entity_id = link.metabolite_entity_id
+            JOIN entities AS metabolite_entity
+              ON metabolite_entity.id = link.metabolite_entity_id
+            ORDER BY reaction_entity.id, metabolite_entity.id
+            """
+        ).fetchall()
+        return [
+            {
+                "reaction_entity_id": row[0],
+                "reaction_id": row[1],
+                "metabolite_entity_id": row[2],
+                "compartment_free_id": row[3],
+                "compartment": row[4],
+                "coefficient": float(row[5]),
+            }
+            for row in rows
+        ]
+
     def evidence_entity_rows(self) -> list[dict[str, Any]]:
         rows = self.conn.execute(
             """
@@ -742,13 +814,18 @@ class SemanticDatabase:
                 "SELECT id, compartments_json FROM models"
             ).fetchall()
         }
-        reaction_metabolites: dict[int, list[tuple[str, str, str, float]]] = {}
+        reaction_metabolites: dict[
+            int,
+            list[tuple[str, str, str, str, str, float]],
+        ] = {}
         for row in self.conn.execute(
             """
             SELECT rm.reaction_entity_id,
                    entity.original_id,
                    entity.name,
                    metabolite.compartment,
+                   metabolite.compartment_free_id,
+                   metabolite.normalized_name,
                    rm.coefficient
             FROM reaction_metabolites AS rm
             JOIN metabolites AS metabolite
@@ -759,7 +836,14 @@ class SemanticDatabase:
             """
         ).fetchall():
             reaction_metabolites.setdefault(row[0], []).append(
-                (row[1] or "", row[2] or "", row[3] or "", float(row[4]))
+                (
+                    row[1] or "",
+                    row[2] or "",
+                    row[3] or "",
+                    row[4] or "",
+                    row[5] or "",
+                    float(row[6]),
+                )
             )
         output = []
         for row in rows:
@@ -779,12 +863,22 @@ class SemanticDatabase:
 
             def participant_text(items):
                 return " ".join(
-                    f"{metabolite_id} {metabolite_name}".strip()
-                    for metabolite_id, metabolite_name, _, _ in items
+                    (
+                        f"{metabolite_id} {metabolite_name} "
+                        f"{compartment_free_id} {normalized_name}"
+                    ).strip()
+                    for (
+                        metabolite_id,
+                        metabolite_name,
+                        _,
+                        compartment_free_id,
+                        normalized_name,
+                        _,
+                    ) in items
                 )
 
-            reactants = [item for item in participants if item[3] < 0]
-            products = [item for item in participants if item[3] > 0]
+            reactants = [item for item in participants if item[5] < 0]
+            products = [item for item in participants if item[5] > 0]
             metabolite_text = participant_text(participants)
             reactant_text = participant_text(reactants)
             product_text = participant_text(products)
@@ -805,14 +899,14 @@ class SemanticDatabase:
 
             transported_reactants = {
                 base
-                for metabolite_id, _, compartment, _ in reactants
+                for metabolite_id, _, compartment, _, _, _ in reactants
                 if (
                     base := compartment_free_id(metabolite_id, compartment)
                 )
             }
             transported_products = {
                 base
-                for metabolite_id, _, compartment, _ in products
+                for metabolite_id, _, compartment, _, _, _ in products
                 if (
                     base := compartment_free_id(metabolite_id, compartment)
                 )

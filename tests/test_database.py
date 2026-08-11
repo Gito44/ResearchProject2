@@ -116,7 +116,7 @@ def test_old_schema_is_rejected_with_a_clear_error(tmp_path, schema_path):
     connection.close()
 
     database = SemanticDatabase(db_path, schema_path)
-    with pytest.raises(IncompatibleSchemaError, match="version 4 is required"):
+    with pytest.raises(IncompatibleSchemaError, match="version 5 is required"):
         database.initialise()
     database.close()
 
@@ -143,7 +143,7 @@ def test_partial_current_schema_is_rejected_with_a_clear_error(
             concept_name TEXT,
             confidence REAL
         );
-        PRAGMA user_version = 4;
+        PRAGMA user_version = 5;
         """
     )
     connection.close()

@@ -27,11 +27,13 @@ def loaded_policy():
 def test_packaged_concepts_and_policy_load():
     concepts, policy = loaded_policy()
 
-    assert len(concepts) == 102
+    assert len(concepts) >= 124
     assert "pathway:glycolysis" in concepts
     assert "reaction_type:biochemical_reaction" in concepts
     assert "pathway:nucleotide_metabolism" in concepts
     assert "pathway:cofactor_biosynthesis" in concepts
+    assert "pathway:urea_cycle" in concepts
+    assert "pathway:fatty_acid_elongation" in concepts
     assert "kegg_pathway_label_match" in policy.definitions
     assert policy.threshold_for("objective:model_objective") == 1.0
 
@@ -77,6 +79,45 @@ def test_compact_matching_is_not_applied_to_ordinary_labels():
     assert ConceptRegistry(concepts).match_label("GlycolysisGluconeogenesis") == ()
 
 
+def test_concept_registry_returns_transitive_ancestors_broad_to_narrow_safe():
+    concepts, _ = loaded_policy()
+    registry = ConceptRegistry(concepts)
+
+    assert registry.ancestors("pathway:glycolysis") == (
+        "pathway:carbohydrate_metabolism",
+        "pathway:energy_metabolism",
+        "pathway:metabolism",
+    )
+    assert registry.hierarchy_compatible(
+        "pathway:glycolysis",
+        "pathway:carbohydrate_metabolism",
+    )
+    assert not registry.hierarchy_compatible(
+        "pathway:glycolysis",
+        "pathway:lipid_metabolism",
+    )
+
+
+def test_explicit_semantic_anchors_match_reaction_and_metabolite_text():
+    concepts, _ = loaded_policy()
+    registry = ConceptRegistry(concepts)
+
+    matches = dict(
+        registry.match_anchors(
+            "palmitoyl-CoA and L-carnitine form palmitoylcarnitine"
+        )
+    )
+
+    assert matches["pathway:lipid_metabolism"] == "carnitine"
+    assert matches["pathway:carnitine_shuttle"] == "carnitine"
+    assert "pathway:glycolysis" not in matches
+
+    fragment_matches = dict(
+        registry.match_anchors("3-hydroxynonadecanoyl-CoA is oxidized")
+    )
+    assert fragment_matches["pathway:lipid_metabolism"] == "anoyl-CoA"
+
+
 def test_canonical_labels_and_synonyms_have_no_accidental_collisions():
     concepts, _ = loaded_policy()
     registry = ConceptRegistry(concepts)
@@ -115,6 +156,11 @@ def test_canonical_labels_and_synonyms_have_no_accidental_collisions():
             "Valine, leucine and isoleucine degradation",
             "pathway:branched_chain_amino_acid_degradation",
         ),
+        ("Bile acid biosynthesis", "pathway:bile_acid_metabolism"),
+        ("Fatty acid oxidation", "pathway:fatty_acid_metabolism"),
+        ("Leukotriene metabolism", "pathway:eicosanoid_metabolism"),
+        ("N-glycan metabolism", "pathway:n_glycan_biosynthesis"),
+        ("Vitamin B2 metabolism", "pathway:riboflavin_metabolism"),
     ],
 )
 def test_representative_provider_labels_match_canonical_concepts(
@@ -136,6 +182,46 @@ def test_calibrated_evidence_tiers_and_thresholds():
     assert policy.definitions["model_subsystem_label_match"].weight == 0.80
     assert policy.definitions["kegg_pathway_label_match"].weight == 0.90
     assert policy.definitions["sbo_term_label_match"].weight == 0.95
+
+
+def test_family_inference_requires_name_and_standardized_metabolite_support():
+    concepts, policy = loaded_policy()
+    registry = ConceptRegistry(concepts)
+
+    def conclusions(name, metabolite_text):
+        database = StubDatabase(
+            entity_rows=[
+                {
+                    "entity_id": 10,
+                    "entity_type": "reaction",
+                    "original_id": "LOCAL_LIPID_RXN",
+                    "name": name,
+                    "objective_coefficient": 0.0,
+                    "equation": "",
+                    "subsystem": "",
+                    "metabolite_text": metabolite_text,
+                    "combined_text": f"{name} {metabolite_text}",
+                }
+            ]
+        )
+        candidates = ModelEvidenceGenerator(policy, registry).generate(database)
+        return EvidenceScorer(policy, concepts).score(candidates)
+
+    name_only = conclusions("diacylglycerol acyltransferase", "")
+    corroborated = conclusions(
+        "diacylglycerol acyltransferase",
+        "triacylglycerol diacyl-sn-glycerol",
+    )
+
+    assert not any(
+        item.concept_id == "pathway:glycerolipid_metabolism"
+        for item in name_only
+    )
+    assert any(
+        item.concept_id == "pathway:glycerolipid_metabolism"
+        and item.confidence == pytest.approx(0.85)
+        for item in corroborated
+    )
 
 
 def test_weak_name_match_alone_does_not_create_a_conclusion():
@@ -533,11 +619,13 @@ def test_external_pathways_can_assign_multiple_concepts_to_one_reaction():
     ).generate(database)
     scored = EvidenceScorer(policy, concepts).score(candidates)
 
-    assert {concept.concept_id for concept in scored} == {
+    scored_ids = {concept.concept_id for concept in scored}
+    assert {
         "pathway:tricarboxylic_acid_cycle",
         "pathway:glyoxylate_metabolism",
         "pathway:carbon_fixation",
-    }
+    } <= scored_ids
+    assert "pathway:metabolism" in scored_ids
 
 
 @pytest.mark.parametrize(
@@ -771,3 +859,30 @@ def test_scorer_deduplicates_codes_caps_scores_and_rejects_weak_candidates():
     assert concepts[0].entity_id == 10
     assert concepts[0].confidence == 1.0
     assert len(concepts[0].evidence) == 2
+
+
+def test_scorer_materializes_broader_pathways_from_narrow_conclusion():
+    concepts, policy = loaded_policy()
+    candidate = CandidateEvidence(
+        entity_id=10,
+        concept_id="pathway:glycolysis",
+        evidence_code="kegg_pathway_label_match",
+        source="kegg",
+        explanation="runtime pathway match",
+    )
+
+    conclusions = EvidenceScorer(policy, concepts).score([candidate])
+    by_id = {item.concept_id: item for item in conclusions}
+
+    assert set(by_id) == {
+        "pathway:glycolysis",
+        "pathway:carbohydrate_metabolism",
+        "pathway:energy_metabolism",
+        "pathway:metabolism",
+    }
+    assert by_id["pathway:carbohydrate_metabolism"].confidence == 0.9
+    assert (
+        by_id["pathway:carbohydrate_metabolism"].evidence[0]
+        .candidate.evidence_code
+        == "concept_hierarchy_inheritance"
+    )

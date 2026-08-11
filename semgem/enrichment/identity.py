@@ -13,6 +13,9 @@ _METANETX_REACTION_ID = re.compile(
     re.IGNORECASE,
 )
 _BIGG_REACTION_CANDIDATE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{1,127}$")
+_BIGG_METABOLITE_CANDIDATE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_]{0,127}$")
+_KEGG_COMPOUND_ID = re.compile(r"^(C\d{5})$", re.IGNORECASE)
+_METANETX_CHEMICAL_ID = re.compile(r"^(MNXM\d+)$", re.IGNORECASE)
 
 
 def infer_identity_inputs(
@@ -50,6 +53,27 @@ def infer_identity_inputs(
                     entity_id=entity["entity_id"],
                     source=source,
                     identifier=identifier,
+                )
+            )
+    for metabolite in database.metabolite_standardization_rows():
+        entity_id = metabolite["entity_id"]
+        identifier = metabolite["compartment_free_id"]
+        candidates = []
+        if match := _KEGG_COMPOUND_ID.fullmatch(identifier):
+            candidates.append(("kegg.compound", match.group(1).upper()))
+        elif match := _METANETX_CHEMICAL_ID.fullmatch(identifier):
+            candidates.append(("metanetx.chemical", match.group(1).upper()))
+        elif _BIGG_METABOLITE_CANDIDATE.fullmatch(identifier):
+            candidates.append(("bigg.metabolite", identifier))
+        for source, candidate_identifier in candidates:
+            if (entity_id, source) in existing:
+                continue
+            inputs.append(
+                AnnotationInputRecord(
+                    annotation_id=None,
+                    entity_id=entity_id,
+                    source=source,
+                    identifier=candidate_identifier,
                 )
             )
     return inputs

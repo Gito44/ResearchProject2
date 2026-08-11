@@ -5,6 +5,10 @@ from semgem.core.records import (
     ReactionRecord,
     StoichiometryRecord,
 )
+from semgem.standardize.metabolites import (
+    normalize_metabolite_name,
+    strip_compartment_suffix,
+)
 
 
 class Extractor:
@@ -19,6 +23,11 @@ class Extractor:
             records.append(MetaboliteRecord(metabolite_id=metabolite.id,
                     name=metabolite.name,
                     compartment=metabolite.compartment,
+                    compartment_free_id=strip_compartment_suffix(
+                        metabolite.id,
+                        metabolite.compartment,
+                    ),
+                    normalized_name=normalize_metabolite_name(metabolite.name),
                     formula=metabolite.formula,
                     charge=metabolite.charge,
                     annotations=dict(metabolite.annotation) if metabolite.annotation else {}))

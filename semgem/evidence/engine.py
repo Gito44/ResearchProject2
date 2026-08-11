@@ -79,6 +79,22 @@ class ModelEvidenceGenerator:
                             observed_value=str(observed),
                         )
                     )
+            for concept_id, anchor in self.registry.match_anchors(
+                entity.get("combined_text")
+            ):
+                definition = self.policy.definitions[
+                    "model_semantic_anchor_match"
+                ]
+                candidates.append(
+                    CandidateEvidence(
+                        entity_id=entity["entity_id"],
+                        concept_id=concept_id,
+                        evidence_code="model_semantic_anchor_match",
+                        source=definition.source,
+                        explanation=definition.description,
+                        observed_value=anchor,
+                    )
+                )
         return candidates
 
     @staticmethod
@@ -200,6 +216,7 @@ class EvidenceScorer:
     def __init__(self, policy: EvidencePolicy, concepts):
         self.policy = policy
         self.concepts = concepts
+        self.registry = ConceptRegistry(concepts)
 
     def score(self, candidates: Iterable[CandidateEvidence]) -> list[ScoredConcept]:
         grouped: dict[tuple[int, str], list[CandidateEvidence]] = defaultdict(list)
@@ -232,4 +249,55 @@ class EvidenceScorer:
                     evidence=scored,
                 )
             )
-        return sorted(accepted, key=lambda item: (item.entity_id, item.concept_id))
+        return sorted(
+            self._add_inherited_concepts(accepted),
+            key=lambda item: (item.entity_id, item.concept_id),
+        )
+
+    def _add_inherited_concepts(
+        self,
+        accepted: list[ScoredConcept],
+    ) -> list[ScoredConcept]:
+        """Materialize broader concepts implied by accepted narrow concepts.
+
+        A child conclusion is sufficient for its ancestors, but an ancestor
+        conclusion never invents a more specific child. Directly supported
+        conclusions take precedence over inherited versions.
+        """
+        conclusions = {
+            (item.entity_id, item.concept_id): item for item in accepted
+        }
+        inherited_from: dict[tuple[int, str], list[ScoredConcept]] = defaultdict(list)
+        for child in accepted:
+            for parent_id in self.registry.ancestors(child.concept_id):
+                key = (child.entity_id, parent_id)
+                if key not in conclusions:
+                    inherited_from[key].append(child)
+
+        for (entity_id, parent_id), children in inherited_from.items():
+            best_confidence = max(child.confidence for child in children)
+            evidence = tuple(
+                ScoredEvidence(
+                    candidate=CandidateEvidence(
+                        entity_id=entity_id,
+                        concept_id=parent_id,
+                        evidence_code="concept_hierarchy_inheritance",
+                        source="semantic_hierarchy",
+                        explanation=(
+                            "A narrower accepted concept implies this broader "
+                            "concept through the canonical hierarchy."
+                        ),
+                        observed_value=child.concept_id,
+                    ),
+                    weight=child.confidence,
+                )
+                for child in sorted(children, key=lambda item: item.concept_id)
+            )
+            conclusions[(entity_id, parent_id)] = ScoredConcept(
+                entity_id=entity_id,
+                concept_id=parent_id,
+                preferred_label=self.concepts[parent_id].preferred_label,
+                confidence=best_confidence,
+                evidence=evidence,
+            )
+        return list(conclusions.values())

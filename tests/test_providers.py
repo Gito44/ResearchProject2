@@ -3,6 +3,7 @@ import pytest
 from semgem.core.records import AnnotationInputRecord
 from semgem.enrichment.kegg import KeggProvider
 from semgem.enrichment.metanetx import MetaNetXProvider
+from semgem.enrichment.metanetx_chemistry import MetaNetXChemistryProvider
 from semgem.enrichment.rhea import RheaProvider
 from semgem.enrichment.sbo import SBOProvider
 
@@ -259,6 +260,136 @@ bigg.reaction:OTHER\tMNXR2\tother
         ("kegg.reaction", "R00771"),
         ("rhea", "15905"),
     }
+
+
+def test_metanetx_chemistry_standardizes_metabolites_and_matches_reaction(
+    tmp_path,
+):
+    chem_xref = tmp_path / "chem_xref.tsv"
+    chem_xref.write_text(
+        """#VERSION: 4.6
+biggM:a\tMNXM10\tA
+biggM:b\tMNXM20\tB
+""",
+        encoding="utf-8",
+    )
+    chem_prop = tmp_path / "chem_prop.tsv"
+    chem_prop.write_text(
+        """#VERSION: 4.6
+MNXM10\tCompound A\tref:a\tC\t0
+MNXM20\tCompound B\tref:b\tC\t0
+""",
+        encoding="utf-8",
+    )
+    reac_prop = tmp_path / "reac_prop.tsv"
+    reac_prop.write_text(
+        """#VERSION: 4.6
+MNXR1\t1 MNXM10@MNXD1 = 1 MNXM20@MNXD1\tbiggR:RXN\t\tB
+""",
+        encoding="utf-8",
+    )
+    reac_xref = tmp_path / "reac_xref.tsv"
+    reac_xref.write_text(
+        """#VERSION: 4.6
+bigg.reaction:RXN\tMNXR1\tA = B
+kegg.reaction:R00001\tMNXR1\tA = B
+""",
+        encoding="utf-8",
+    )
+
+    class Database:
+        @staticmethod
+        def reaction_stoichiometry_rows():
+            return [
+                {
+                    "reaction_entity_id": 30,
+                    "reaction_id": "LOCAL_RXN",
+                    "metabolite_entity_id": 10,
+                    "compartment_free_id": "a",
+                    "compartment": "c",
+                    "coefficient": -1.0,
+                },
+                {
+                    "reaction_entity_id": 30,
+                    "reaction_id": "LOCAL_RXN",
+                    "metabolite_entity_id": 20,
+                    "compartment_free_id": "b",
+                    "compartment": "c",
+                    "coefficient": 1.0,
+                },
+            ]
+
+    provider = MetaNetXChemistryProvider(
+        chem_xref,
+        reac_prop,
+        reac_xref,
+        chem_prop,
+    )
+    provider.use_catalog_cache(Database())
+    result = provider.enrich(
+        [
+            AnnotationInputRecord(None, 10, "bigg.metabolite", "a"),
+            AnnotationInputRecord(None, 20, "bigg.metabolite", "b"),
+        ],
+        run_id=6,
+    )
+
+    assert result.resolved_identifiers == (
+        "bigg.metabolite:a",
+        "bigg.metabolite:b",
+    )
+    assert {
+        (assertion.entity_id, assertion.predicate, assertion.term_identifier)
+        for assertion in result.assertions
+    } == {
+        (10, "maps_to_mnxref_chemical", "MNXM10"),
+        (20, "maps_to_mnxref_chemical", "MNXM20"),
+        (30, "matches_mnxref_reaction_signature", "MNXR1"),
+    }
+    assert any(
+        relationship.object_source == "kegg.reaction"
+        and relationship.object_identifier == "R00001"
+        for relationship in result.relationships
+    )
+
+
+def test_metanetx_chemistry_rejects_cross_source_metabolite_disagreement(
+    tmp_path,
+):
+    chem_xref = tmp_path / "chem_xref.tsv"
+    chem_xref.write_text(
+        """#VERSION: 4.6
+biggM:a\tMNXM10\tA
+keggC:C00001\tMNXM20\tOther A
+""",
+        encoding="utf-8",
+    )
+    reac_prop = tmp_path / "reac_prop.tsv"
+    reac_prop.write_text("#VERSION: 4.6\n", encoding="utf-8")
+    reac_xref = tmp_path / "reac_xref.tsv"
+    reac_xref.write_text("#VERSION: 4.6\n", encoding="utf-8")
+
+    class Database:
+        @staticmethod
+        def reaction_stoichiometry_rows():
+            return []
+
+    provider = MetaNetXChemistryProvider(
+        chem_xref,
+        reac_prop,
+        reac_xref,
+    )
+    provider.use_catalog_cache(Database())
+    result = provider.enrich(
+        [
+            AnnotationInputRecord(None, 10, "bigg.metabolite", "a"),
+            AnnotationInputRecord(None, 10, "kegg.compound", "C00001"),
+        ],
+        run_id=7,
+    )
+
+    assert result.assertions == ()
+    assert result.terms == ()
 
 
 def test_rhea_provider_normalizes_directional_id_and_exports_kegg_bridge(tmp_path):

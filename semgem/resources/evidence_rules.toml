@@ -66,6 +66,16 @@ source = "model"
 description = "The normalized reaction name contains a curated pathway-specific enzyme or reaction label."
 weight = 0.80
 
+[evidence.reaction_name_family_match]
+source = "model"
+description = "The reaction name contains a curated biochemical-family label."
+weight = 0.45
+
+[evidence.standardized_metabolite_family_match]
+source = "model"
+description = "Standardized reaction participants contain a metabolite-family label consistent with the proposed pathway."
+weight = 0.40
+
 [evidence.demand_id_pattern]
 source = "model"
 description = "The reaction identifier starts with the conventional DM_ demand prefix."
@@ -85,6 +95,11 @@ weight = 0.95
 source = "model"
 description = "The model entity name exactly matched a canonical label or synonym."
 weight = 0.70
+
+[evidence.model_semantic_anchor_match]
+source = "model"
+description = "Reaction text or participating metabolite names contained an explicit canonical concept anchor."
+weight = 0.80
 
 [evidence.model_subsystem_label_match]
 source = "model"
@@ -423,4 +438,220 @@ values = [
     "fumarase",
     "fumarate hydratase",
     "malate dehydrogenase",
+]
+
+# Family inference combines an enzyme/reaction-name signal with an independent
+# standardized-participant signal. Neither 0.45 nor 0.40 reaches the default
+# 0.75 threshold alone.
+
+[[model_rules]]
+concept_id = "pathway:glycerolipid_metabolism"
+evidence_code = "reaction_name_family_match"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "diacylglycerol acyltransferase",
+    "triacylglycerol acylhydrolase",
+    "omega-3 desaturase",
+    "omega-6 desaturase",
+    "diacylglycerol kinase",
+    "digalactosyl-diacylglycerol",
+    "digalatcosyldiacylglycerol",
+    "monogalactosyldiacylglycerol",
+    "monogalatcosyldiacylglycerol",
+    "phosphatidate phosphatase",
+    "oleate desaturase",
+    "linoleate desaturase",
+    "betaine lipid synthase",
+    "glycerol 3-phosphate o-acyltransferase",
+    "glycerol-3-phosphate: acyl-coa acyltransferase",
+    "glycerol-3-phosphate acyltransferase",
+    "1-acylglycerol acylhydrolase",
+    "sulfolipid 2'-o-acyltransferase",
+    "sulfolipid synthase",
+    "long-chain acyl-coa synthetase",
+    "delta5 desaturase",
+    "palmitate delta7-desaturase",
+]
+
+[[model_rules]]
+concept_id = "pathway:glycerolipid_metabolism"
+evidence_code = "standardized_metabolite_family_match"
+entity_type = "reaction"
+target_field = "metabolite_text"
+operator = "contains_any"
+values = [
+    "diacyl-sn-glycerol",
+    "diacylglycerol",
+    "triacylglycerol",
+    "galactosyldiacylglycerol",
+    "sulfoquinovosyl",
+    "diacylglyceryl",
+    "phosphatidate",
+    "acyl-sn-glycerol",
+]
+
+[[model_rules]]
+concept_id = "pathway:glycerophospholipid_metabolism"
+evidence_code = "reaction_name_family_match"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "1-acylglycerophosphoethanolamine o-acyltransferase",
+    "phospholipase a2",
+    "phospholipase d",
+    "cdp-diacylglycerol synthetase",
+    "lysophospholipase",
+    "phosphatidylglycerol palmitate",
+    "phosphatidylglycerol phosphate phosphatase",
+    "phosphatidylglycerolphosphate synthase",
+    "cdp-ethanolamine: diacylglycerol ethanolamine phosphotransferase",
+    "cdp-diacylglycerol: myo-inositol",
+    "glycerophosphodiester phosphodiesterase",
+    "phosphatidylethanolamine cytidylyltransferase",
+]
+
+[[model_rules]]
+concept_id = "pathway:glycerophospholipid_metabolism"
+evidence_code = "standardized_metabolite_family_match"
+entity_type = "reaction"
+target_field = "metabolite_text"
+operator = "contains_any"
+values = [
+    "phosphatidylethanolamine",
+    "phosphatidylglycerol",
+    "phosphatidylcholine",
+    "phosphatidylserine",
+    "phosphatidylinositol",
+    "glycerophosphoethanolamine",
+    "cdp-diacylglycerol",
+]
+
+[[model_rules]]
+concept_id = "pathway:fatty_acid_metabolism"
+evidence_code = "reaction_name_family_match"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "enoyl-[acyl-carrier-protein] reductase",
+    "3-hydroxyacyl-[acyl-carrier-protein] dehydratase",
+    "3-oxoacyl-[acyl-carrier-protein] reductase",
+    "3-oxoacyl-[acyl-carrier-protein] synthase",
+    "fatty-acyl-acp hydrolase",
+    "oleoyl-[acyl-carrier-protein] hydrolase",
+    "acetyl-coa carboxylase",
+    "beta-ketoacyl-acyl-carrier-protein synthase",
+    "acyl-[acyl-carrier-protein] delta9-desaturase",
+    "stearoyl-[acyl-carrier-protein] delta9-desaturase",
+    "biotin carboxylase",
+    "beta-ketoacyl-acp synthase",
+    "malonyl-coa:[acyl-carrier-protein]",
+]
+
+[[model_rules]]
+concept_id = "pathway:fatty_acid_metabolism"
+evidence_code = "standardized_metabolite_family_match"
+entity_type = "reaction"
+target_field = "metabolite_text"
+operator = "contains_any"
+values = [
+    "acyl-carrier protein",
+    "acyl carrier protein",
+    "-acp",
+    "malonyl-[acyl-carrier-protein]",
+]
+
+[[model_rules]]
+concept_id = "pathway:steroid_biosynthesis"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "sterol",
+    "steroid",
+    "lanosterol",
+    "cycloartenol",
+    "zymosterol",
+    "cholesta",
+    "calcidiol",
+    "cycloeucalenol",
+    "desmosterol",
+    "tocopherol cyclase",
+]
+
+[[model_rules]]
+concept_id = "pathway:porphyrin_and_chlorophyll_metabolism"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "porphyrin",
+    "porphyrinogen",
+    "chlorophyll",
+    "chlorophyllide",
+    "protochlorophyllide",
+    "heme ",
+    "haem ",
+    "ferrochelatase",
+    "biliverdin",
+]
+
+[[model_rules]]
+concept_id = "pathway:carotenoid_biosynthesis"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "carotene",
+    "carotenoid",
+    "cryptoxanthin",
+    "zeaxanthin",
+    "antheraxanthin",
+    "violaxanthin",
+    "lycopene",
+    "phytoene",
+    "phytofluene",
+    "neurosporene",
+    "neoxanthin",
+    "lutein hydroxylase",
+    "zeinoxanthin",
+]
+
+[[model_rules]]
+concept_id = "pathway:n_glycan_biosynthesis"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "chitobiosyldiphosphodolichol",
+    "dolichyl-diphosphooligosaccharide",
+    "dolichyl-phosphate-mannose-glycolipid",
+    "udp-glcnac:dolichyl",
+    "mannosyl-oligosaccharide",
+    "glucan 1,3-alpha-glucosidase",
+    "alpha-1,2-mannosyltransferase",
+    "alpha-1,3-mannosyltransferase",
+    "alpha-1,6-mannosyltransferase",
+]
+
+[[model_rules]]
+concept_id = "pathway:o_glycan_biosynthesis"
+evidence_code = "curated_reaction_name_pattern"
+entity_type = "reaction"
+target_field = "name"
+operator = "contains_any"
+values = [
+    "o-glycan",
+    "o-arabinoglycan",
+    "o-galactoglycan",
+    "udp-arabinose:hydroxyproline",
+    "udp-galactose:hydroxyproline",
+    "prolyl 4-hydroxylase",
 ]

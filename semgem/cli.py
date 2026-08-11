@@ -12,6 +12,7 @@ from semgem.database.sqlite import (
 )
 from semgem.enrichment import (
     KeggProvider,
+    MetaNetXChemistryProvider,
     MetaNetXProvider,
     RheaProvider,
     SBOProvider,
@@ -190,6 +191,39 @@ def build(
         dir_okay=False,
         readable=True,
     ),
+    metanetx_chem_xref: Path | None = typer.Option(
+        None,
+        "--metanetx-chem-xref",
+        help="Official MNXref chem_xref.tsv used to standardize metabolites.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    metanetx_reac_prop: Path | None = typer.Option(
+        None,
+        "--metanetx-reac-prop",
+        help=(
+            "Official MNXref reac_prop.tsv used for canonical "
+            "stoichiometric-signature matching."
+        ),
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    metanetx_chem_prop: Path | None = typer.Option(
+        None,
+        "--metanetx-chem-prop",
+        help=(
+            "Optional official MNXref chem_prop.tsv used for canonical "
+            "metabolite names."
+        ),
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
     rhea_xref: Path | None = typer.Option(
         None,
         "--rhea-xref",
@@ -224,6 +258,21 @@ def build(
     schema_path = Path(__file__).parent / "database" / "schema.sql"
     sbo_path = sbo_file or resources_path / "sbo" / "SBO_OBO.obo"
     discovered_models = discover_model_paths(model_paths)
+    chemistry_options = (metanetx_chem_xref, metanetx_reac_prop)
+    if any(option is not None for option in chemistry_options) and not all(
+        option is not None for option in chemistry_options
+    ):
+        raise typer.BadParameter(
+            "--metanetx-chem-xref and --metanetx-reac-prop must be "
+            "provided together."
+        )
+    if all(option is not None for option in chemistry_options) and (
+        metanetx_xref is None
+    ):
+        raise typer.BadParameter(
+            "--metanetx-xref is required for chemistry-derived reaction "
+            "cross-references."
+        )
     imported = []
     if kegg is None:
         if sys.stdin.isatty():
@@ -242,6 +291,15 @@ def build(
                 counts = import_model(model_path, database)
                 imported.append((model_path, counts))
             providers = [SBOProvider(sbo_path)]
+            if metanetx_chem_xref is not None:
+                providers.append(
+                    MetaNetXChemistryProvider(
+                        chem_xref_path=metanetx_chem_xref,
+                        chem_prop_path=metanetx_chem_prop,
+                        reac_prop_path=metanetx_reac_prop,
+                        reac_xref_path=metanetx_xref,
+                    )
+                )
             if metanetx_xref is not None:
                 providers.append(MetaNetXProvider(metanetx_xref))
             if rhea_xref is not None:

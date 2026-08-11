@@ -1,0 +1,13 @@
+# Models inspected during classifier development. These models must not be
+# presented as independent held-out benchmarks in the final evaluation.
+
+[[models]]
+role = "development"
+model_class = "human"
+name = "Human-GEM"
+model_version = "2.0.0"
+repository_commit = "635f533152dc5f7290ce04d12700eaa882273c3e"
+source = "https://github.com/SysBioChalmers/Human-GEM"
+local_path = "models/Human-GEM-v2.0.0.xml"
+reference_field = "reaction.subsystem"
+notes = "Pinned official release; all 12,931 reactions have subsystem labels and annotations."

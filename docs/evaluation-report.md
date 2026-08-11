@@ -5,6 +5,74 @@ performed for the provisional v0.5.1 implementation. It is not the final thesis
 results chapter. The manually curated benchmark should receive independent
 biological review before its results are treated as definitive.
 
+## Current metabolite-standardization development result
+
+The current development branch adds conservative compartment-independent
+metabolite identifiers, normalized metabolite names, MetaNetX chemical
+standardization, and unique stoichiometric-signature matching. It also adds
+family rules that require independent support from both a reaction name and
+standardized reaction participants for major lipid pathways.
+
+On iRC1080, with all source subsystem labels hidden, all 1,706 source
+metabolites lacked external annotations. The new workflow standardized 1,493
+model-local metabolite entities and uniquely matched 547 reaction signatures
+to MNXref reactions. With runtime KEGG pathway lookup, reaction coverage rose
+from 49.8% before the new family rules to 73.2%.
+
+| iRC1080 measure | Current result |
+|---|---:|
+| Reactions | 2,191 |
+| Reactions with a pathway/reaction-type/transport conclusion | 1,603 (73.2%) |
+| Comparable precision | 81.8% |
+| Comparable recall | 69.3% |
+| Comparable F1 | 75.1% |
+| Pathway precision | 78.3% |
+| Pathway recall | 61.6% |
+| Pathway F1 | 69.0% |
+| Transport precision | 90.8% |
+| Transport recall | 99.5% |
+
+This is a development result, not an independent accuracy estimate, because
+iRC1080's hidden subsystem labels were inspected while designing the rules.
+The increase was not obtained by lowering the default 0.75 acceptance
+threshold. For the three largest inferred families, the name evidence has
+weight 0.45 and the standardized-metabolite evidence has weight 0.40; both are
+required to reach a conclusion.
+
+The updated 19-model all-provider cohort contains 41,131 reactions. Pathway
+coverage increased from 9,283 reactions (22.6%) in the previous benchmark to
+11,783 reactions (28.6%), a gain of 2,500 reactions or 6.1 percentage points.
+The catalog standardized 19,457 metabolite entities and uniquely matched 5,315
+reaction signatures. Chemistry-derived MetaNetX assertions supported pathway
+conclusions for 3,478 reactions; evidence sources overlap.
+
+| Model | Reactions | Previous pathway coverage | Current pathway coverage |
+|---|---:|---:|---:|
+| iJN678 | 863 | 70.7% | 73.2% |
+| MODEL1507180064 | 1,785 | 53.5% | 61.7% |
+| iMM904 | 1,577 | 51.0% | 58.8% |
+| iJO1366 | 2,583 | 57.3% | 57.4% |
+| MODEL1507180050 | 1,254 | 55.8% | 57.1% |
+| *E. coli* core | 95 | 49.5% | 49.5% |
+| MODEL1507180060 | 1,075 | 2.2% | 42.2% |
+| iCN900 | 1,230 | 33.9% | 37.2% |
+| iYO844 | 1,250 | 32.7% | 36.1% |
+| iAM_Pf480 | 1,083 | 23.3% | 29.7% |
+| iML1515 | 2,712 | 22.2% | 29.5% |
+| GCF_000167875_2 | 2,732 | 22.0% | 29.3% |
+| GCF_000967155_2 | 2,732 | 22.0% | 29.3% |
+| iYS1720 | 3,357 | 22.0% | 25.8% |
+| Recon3D | 10,600 | 9.3% | 14.4% |
+| iEC1364_W | 2,771 | 0.7% | 6.9% |
+| GCF_019456065_1 | 1,064 | 0.9% | 6.4% |
+| GCF_003053245_1 | 1,125 | 1.0% | 6.0% |
+| GCF_002079545_1 | 1,243 | 0.8% | 5.9% |
+
+These results show a large gain on the annotation-free development model and a
+smaller but consistent gain across diverse models. Biological validity must now
+be assessed on an independent holdout as described in
+[biological-evaluation-todo.md](biological-evaluation-todo.md).
+
 ## Annotation-free iRC1080 subsystem benchmark (development)
 
 The iRC1080-Chapman3 SBML model provides 2,191 reactions with 83 individual

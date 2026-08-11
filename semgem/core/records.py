@@ -20,6 +20,8 @@ class MetaboliteRecord:
     metabolite_id: str
     name: str
     compartment: str | None
+    compartment_free_id: str
+    normalized_name: str
     formula: str | None
     charge: int | None
     annotations: dict[str, Any] = field(default_factory=dict)

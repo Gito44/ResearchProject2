@@ -7,11 +7,17 @@ from semgem.evidence.rules import (
     EvidencePolicy,
     ModelEvidenceRule,
 )
+from semgem.evidence.concepts import ConceptRegistry
 
 
 def load_concepts(path: str | Path) -> dict[str, ConceptDefinition]:
     with Path(path).open("rb") as file:
         data = tomllib.load(file)
+
+    declared_parents: dict[str, list[str]] = {}
+    for parent_id, child_ids in data.get("hierarchy", {}).get("parents", {}).items():
+        for child_id in child_ids:
+            declared_parents.setdefault(child_id, []).append(parent_id)
 
     concepts = {}
     for concept_id, raw in data.get("concepts", {}).items():
@@ -25,12 +31,35 @@ def load_concepts(path: str | Path) -> dict[str, ConceptDefinition]:
             preferred_label=raw["preferred_label"],
             description=raw.get("description", ""),
             synonyms=tuple(raw.get("synonyms", [])),
+            parents=tuple(
+                dict.fromkeys(
+                    [
+                        *raw.get("parents", []),
+                        *declared_parents.get(concept_id, []),
+                    ]
+                )
+            ),
+            anchors=tuple(raw.get("anchors", [])),
+            anchor_fragments=tuple(raw.get("anchor_fragments", [])),
         )
         if concept.category != concept_id.split(":", 1)[0]:
             raise ValueError(
                 f"Concept '{concept_id}' category does not match its identifier."
             )
         concepts[concept_id] = concept
+    for concept in concepts.values():
+        for parent_id in concept.parents:
+            if parent_id not in concepts:
+                raise ValueError(
+                    f"Concept '{concept.concept_id}' has unknown parent "
+                    f"'{parent_id}'."
+                )
+            if concepts[parent_id].category != concept.category:
+                raise ValueError(
+                    f"Concept '{concept.concept_id}' and parent '{parent_id}' "
+                    "must use the same category."
+                )
+    ConceptRegistry(concepts).validate_hierarchy()
     return concepts
 
 
