@@ -299,6 +299,14 @@ preferred_label = "Oxidative phosphorylation"
 description = "Reactions associated with oxidative phosphorylation."
 synonyms = ["respiratory chain", "electron transport chain"]
 parents = ["pathway:energy_metabolism"]
+anchors = [
+    "oxidative phosphorylation", "respiratory chain",
+    "electron transport chain", "ATP synthase", "cytochrome oxidase",
+    "NADH dehydrogenase", "quinol monooxygenase",
+    "dehydrogenase ubiquinone", "dehydrogenase menaquinone",
+    "hydrogenase ubiquinone", "hydrogenase menaquinone",
+    "reductase ubiquinol", "reductase menaquinol",
+]
 
 [concepts."pathway:pyruvate_metabolism"]
 category = "pathway"
@@ -449,18 +457,23 @@ category = "pathway"
 preferred_label = "Alternate carbon metabolism"
 description = "Reactions associated with the metabolism of alternative carbon sources."
 synonyms = []
+parents = ["pathway:carbohydrate_metabolism"]
 
 [concepts."pathway:nucleotide_salvage"]
 category = "pathway"
 preferred_label = "Nucleotide salvage"
 description = "Reactions associated with nucleotide salvage."
 synonyms = ["nucleotide salvage pathway"]
+parents = ["pathway:nucleotide_metabolism"]
+anchors = ["nucleotide salvage", "nucleobase salvage"]
 
 [concepts."pathway:cell_envelope_biosynthesis"]
 category = "pathway"
 preferred_label = "Cell envelope biosynthesis"
 description = "Reactions associated with cell-envelope biosynthesis."
 synonyms = []
+parents = ["pathway:metabolism"]
+anchors = ["cell envelope"]
 
 [concepts."pathway:lipopolysaccharide_metabolism"]
 category = "pathway"
@@ -470,12 +483,16 @@ synonyms = [
     "lipopolysaccharide biosynthesis",
     "lipopolysaccharide biosynthesis / recycling",
 ]
+parents = ["pathway:cell_envelope_biosynthesis"]
+anchors = ["lipopolysaccharide", "lipid A"]
 
 [concepts."pathway:membrane_lipid_metabolism"]
 category = "pathway"
 preferred_label = "Membrane lipid metabolism"
 description = "Reactions associated with membrane-lipid metabolism."
 synonyms = []
+parents = ["pathway:lipid_metabolism"]
+anchors = ["membrane lipid"]
 
 [concepts."pathway:murein_metabolism"]
 category = "pathway"
@@ -486,6 +503,8 @@ synonyms = [
     "murein recycling",
     "peptidoglycan biosynthesis",
 ]
+parents = ["pathway:cell_envelope_biosynthesis"]
+anchors = ["murein", "peptidoglycan"]
 
 [concepts."pathway:purine_and_pyrimidine_biosynthesis"]
 category = "pathway"

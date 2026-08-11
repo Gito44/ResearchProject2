@@ -96,6 +96,18 @@ def test_concept_registry_returns_transitive_ancestors_broad_to_narrow_safe():
         "pathway:glycolysis",
         "pathway:lipid_metabolism",
     )
+    lipopolysaccharide_ancestors = registry.ancestors(
+        "pathway:lipopolysaccharide_metabolism"
+    )
+    assert lipopolysaccharide_ancestors[0] == (
+        "pathway:cell_envelope_biosynthesis"
+    )
+    assert "pathway:glycan_metabolism" in lipopolysaccharide_ancestors
+    assert "pathway:metabolism" in lipopolysaccharide_ancestors
+    assert registry.hierarchy_compatible(
+        "pathway:nucleotide_salvage",
+        "pathway:nucleotide_metabolism",
+    )
 
 
 def test_explicit_semantic_anchors_match_reaction_and_metabolite_text():
@@ -128,6 +140,10 @@ def test_explicit_semantic_anchors_match_reaction_and_metabolite_text():
         (
             "Dolichyl-diphosphooligosaccharide processing",
             "pathway:n_glycan_biosynthesis",
+        ),
+        (
+            "Cytochrome oxidase transfers electrons to oxygen",
+            "pathway:oxidative_phosphorylation",
         ),
     ],
 )
