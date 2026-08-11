@@ -145,6 +145,18 @@ def test_explicit_semantic_anchors_match_reaction_and_metabolite_text():
             "Cytochrome oxidase transfers electrons to oxygen",
             "pathway:oxidative_phosphorylation",
         ),
+        (
+            "Photosystem II transfers light-derived electrons",
+            "pathway:photosynthesis",
+        ),
+        (
+            "Ribulose-bisphosphate carboxylase fixes carbon dioxide",
+            "pathway:carbon_fixation",
+        ),
+        (
+            "Precorrin-6A reductase participates in tetrapyrrole synthesis",
+            "pathway:porphyrin_and_chlorophyll_metabolism",
+        ),
     ],
 )
 def test_transferable_specific_pathway_anchors(text, expected_concept):

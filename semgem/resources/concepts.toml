@@ -327,6 +327,10 @@ synonyms = [
     "glyoxylate and dicarboxylate metabolism",
 ]
 parents = ["pathway:carbohydrate_metabolism"]
+anchors = [
+    "glyoxylate", "glycolate", "phosphoglycolate", "hydroxypyruvate",
+    "tartronate semialdehyde",
+]
 
 [concepts."pathway:nitrogen_metabolism"]
 category = "pathway"
@@ -549,6 +553,11 @@ category = "pathway"
 preferred_label = "Photosynthesis"
 description = "Reactions associated with photosynthesis."
 synonyms = ["photosynthetic reactions", "photosynthetic light reactions"]
+parents = ["pathway:energy_metabolism"]
+anchors = [
+    "photosystem I", "photosystem II", "cytochrome b6 f complex",
+    "cyclic electron flow", "ferredoxin NADP reductase", "Mehler reaction",
+]
 
 [concepts."pathway:carbon_fixation"]
 category = "pathway"
@@ -562,12 +571,23 @@ synonyms = [
     "Calvin cycle",
     "Calvin-Benson-Bassham cycle",
 ]
+parents = ["pathway:carbohydrate_metabolism"]
+anchors = [
+    "phosphoribulokinase", "ribulose bisphosphate carboxylase",
+    "sedoheptulose bisphosphatase", "Calvin cycle",
+]
 
 [concepts."pathway:porphyrin_and_chlorophyll_metabolism"]
 category = "pathway"
 preferred_label = "Porphyrin and chlorophyll metabolism"
 description = "Reactions associated with porphyrin and chlorophyll metabolism."
 synonyms = ["porphyrin metabolism", "chlorophyll metabolism"]
+parents = ["pathway:cofactor_and_vitamin_metabolism"]
+anchors = [
+    "porphyrin", "porphyrinogen", "chlorophyll", "chlorophyllide",
+    "protochlorophyllide", "precorrin", "cobinamide", "cobyric acid",
+    "cobyrinic acid", "cobalamin", "hydrogenobyrinate",
+]
 
 [concepts."pathway:carotenoid_biosynthesis"]
 category = "pathway"
