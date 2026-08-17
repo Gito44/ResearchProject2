@@ -17,3 +17,7 @@ models/*.xml.gz
 models/*.json
 models/*.json.gz
 /models_test/
+
+# Private development, thesis, meeting, and evaluation notes. These files are
+# intentionally excluded from the public software repository.
+/local_notes/

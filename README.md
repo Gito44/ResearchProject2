@@ -1,320 +1,121 @@
 # SemGEM
 
-SemGEM is a research prototype for generating an explainable semantic layer over SBML genome-scale metabolic models (GEMs).
+SemGEM is a research prototype that generates an explainable semantic layer over SBML genome-scale metabolic models (GEMs).
 
-Different GEMs often represent equivalent biological concepts using different combinations of reaction IDs, names, subsystem labels, SBML Groups, and external annotations. Code written for one model can therefore fail when applied to another model. SemGEM aims to normalize this heterogeneous information into a consistent, queryable representation for scientists and developers.
+Equivalent biological features are often represented differently across GEMs: identifiers, names, subsystem labels, annotations, and compartment conventions vary between models. SemGEM combines those model-local facts with established external resources and stores consistent semantic assignments in a queryable multi-model catalog.
 
-Version 0.11.0 is the implementation frozen for the MSc thesis evaluation.
-Development after this point is limited to documented bug fixes until the
-reported experiments are complete.
+Version **0.11.1** contains the implementation frozen for MSc thesis evaluation plus public-documentation corrections. It is intended to save scientists and developers time when exploring heterogeneous model collections; it is not a source of definitive biological truth or a replacement for model curation.
 
-## Current capabilities
+## What SemGEM provides
 
-The current version can:
-
-- load SBML models using COBRApy;
-- extract reactions, metabolites, genes, stoichiometry, and gene associations;
-- preserve existing model annotations as individually queryable identifiers;
-- store multiple models in one relational SQLite catalog;
-- resolve SBO annotations against a managed official ontology snapshot;
-- automatically download, verify, version, and reuse official SBO, MetaNetX,
-  and Rhea resources in a user-local cache;
-- bridge reaction identities through official MetaNetX and Rhea
-  cross-reference files;
-- classify a small, transparent set of central-metabolism community reaction
-  IDs through exact equality rules;
-- infer translocation and compartment-specific transport from reaction
-  stoichiometry and the model's named compartments;
-- treat annotation-free BiGG-style local reaction IDs as lookup candidates
-  that must be confirmed by the managed MetaNetX resource;
-- recognize strict KEGG, Rhea, and MetaNetX accessions used directly as local
-  reaction IDs without fabricating source annotations;
-- optionally resolve KEGG reaction-to-pathway relationships at runtime;
-- normalize external labels to provider-independent canonical concepts;
-- query models, scoped entities, annotations, concepts, and supporting evidence
-  through a read-only Python API;
-- generate fixed evidence templates dynamically from model and provider facts;
-- score candidates using configurable provisional TOML weights and thresholds;
-- record confidence, observed values, provider provenance, and evidence weights;
-- detect exact duplicate models and model-identity conflicts;
-- import each model atomically; and
-- remove dependent model data through foreign-key cascades; and
-- export a model-independent, versioned JSON semantic catalog.
-
-The package currently builds, enriches, classifies, queries, and exports the
-semantic catalog.
+- SBML import through COBRApy.
+- One SQLite catalog containing multiple models.
+- Reactions, metabolites, genes, stoichiometry, annotations, and gene associations.
+- Default SBO, MetaNetX, and Rhea enrichment using a managed local resource cache.
+- Optional runtime KEGG pathway enrichment.
+- Evidence-backed pathway and functional classifications with confidence scores.
+- Cross-model search, coverage summaries, entity inspection, and evidence explanations.
+- Portable JSON and gzip-compressed JSON export.
 
 ## Installation
 
-SemGEM requires Python 3.11 or later.
+SemGEM requires Python 3.11 or later. Until a PyPI release is available, install the frozen GitHub release in a virtual environment:
 
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e .
+python -m pip install --upgrade pip
+python -m pip install "git+https://github.com/Gito44/ResearchProject2.git@v0.11.1"
 ```
 
-For development and tests:
+Confirm the installation:
 
 ```bash
+semgem --help
+```
+
+For local development:
+
+```bash
+git clone git@github.com:Gito44/ResearchProject2.git
+cd ResearchProject2
+git switch --detach v0.11.1
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
+pytest
 ```
 
-## Building a semantic catalog
+## Quick start
+
+Build a catalog from one model, several models, or a directory containing SBML files:
 
 ```bash
-semgem build path/to/model.xml --out outputs/semantic_catalog.sqlite
+semgem build path/to/models/ --out semantic_catalog.sqlite --no-kegg
 ```
 
-One command can import multiple models into the same catalog:
+SBO, MetaNetX, and Rhea enrichment run by default. Missing official resources are downloaded to `~/.semgem/resources`, verified, and reused on later runs.
+
+KEGG is recommended when pathway enrichment is needed, but it requires internet access and takes longer:
 
 ```bash
-semgem build path/to/model_a.xml path/to/model_b.xml \
-    --out outputs/semantic_catalog.sqlite
+semgem build path/to/models/ --out semantic_catalog.sqlite --kegg
 ```
 
-Single-model commands remain supported. A later command can also extend the same
-catalog by importing another model.
+SemGEM does not distribute static KEGG mappings. KEGG-derived results remain in the user's local catalog, and users are responsible for following KEGG's terms.
 
-A directory can be imported recursively, which is more convenient for larger
-model collections:
+Inspect the result:
 
 ```bash
-semgem build path/to/models/ --out outputs/semantic_catalog.sqlite
+semgem summary semantic_catalog.sqlite
+semgem coverage semantic_catalog.sqlite
+semgem search semantic_catalog.sqlite glycolysis --type reaction
 ```
 
-SBO, Rhea, and MetaNetX reaction-identity enrichment run by default. On the
-first run, missing official resources are placed in `~/.semgem/resources`;
-subsequent runs verify their SHA-256 hashes and reuse them. MetaNetX release
-4.5 is pinned so a future upstream release cannot silently change a result.
-The cache location can be changed with `--resource-dir` or the
-`SEMGEM_RESOURCE_DIR` environment variable.
-
-KEGG enrichment is recommended but optional because it needs internet access,
-takes longer, and has separate usage conditions:
+Export compact compressed JSON:
 
 ```bash
-semgem build path/to/models/ \
-    --out outputs/semantic_catalog.sqlite \
-    --kegg
+semgem export semantic_catalog.sqlite \
+  --out semantic_catalog.json.gz \
+  --compact
 ```
 
-Automated workflows should explicitly use `--kegg` or `--no-kegg`. SemGEM does
-not distribute static KEGG mappings. Runtime results are stored only in the
-user's local catalog; users remain responsible for complying with KEGG terms
-and should not redistribute KEGG-derived catalogs without appropriate
-permission.
+See the [CLI reference](docs/cli-reference.md) for all commands and common workflows.
 
-No manual provider downloads are required for the normal workflow:
-
-```bash
-semgem build path/to/models/ \
-    --out outputs/semantic_catalog.sqlite \
-    --kegg
-```
-
-The normal MetaNetX download is the reaction cross-reference (currently about
-77 MB). Experimental metabolite standardization and stoichiometric matching
-need a much larger first-run download and are therefore explicit:
-
-```bash
-semgem build path/to/models/ \
-    --out outputs/semantic_catalog.sqlite \
-    --metanetx-chemistry \
-    --kegg
-```
-
-Use `semgem resources` to inspect cached versions and integrity. Use
-`--refresh-resources` to acquire fresh copies, or `--offline` to prohibit all
-downloads and require a verified cache. Explicit provider-file options remain
-available for controlled experiments.
-
-The identity providers run before KEGG, allowing model BiGG, MetaNetX, or Rhea
-annotations to expose additional KEGG reaction identifiers. KEGG then obtains
-pathway relationships at runtime in batches. MetaNetX and Rhea improve identity
-reach; they do not themselves imply pathway membership.
-
-Official sources:
-
-- MetaNetX `reac_xref.tsv`:
-  `https://www.metanetx.org/mnxdoc/mnxref.html`
-- Rhea `rhea2xrefs.tsv`:
-  `https://www.rhea-db.org/help/download`
-
-Rhea data is CC BY 4.0. MetaNetX is generally CC BY 4.0 but warns that
-cross-referenced records may retain restrictions from their original sources.
-Users should retain provenance and review the applicable source terms before
-redistributing enriched catalogs.
-
-Experimental exact community-ID rules are included. Their scope,
-provenance, and evaluation limitations are documented in
-[`docs/static-identifier-mappings.md`](docs/static-identifier-mappings.md).
-
-Subsystem evidence can be disabled for inference evaluation:
-
-```bash
-semgem build path/to/model.xml \
-    --out outputs/no_subsystem_evidence.sqlite \
-    --ignore-subsystems \
-    --no-kegg
-```
-
-This preserves subsystem data in the raw model tables but prevents the
-evidence engine from using those labels when generating conclusions.
-
-Directory discovery accepts `.xml`, `.xml.gz`, `.sbml`, and `.sbml.gz` files,
-ignores unrelated files, sorts the discovered paths, and avoids importing the
-same file twice when inputs overlap. Files and directories can be mixed in the
-same command.
-
-SemGEM rejects an exact duplicate model. It also rejects reuse of an existing SBML model ID with different file content. Differently identified models with identical hashes are allowed with a warning.
-
-## Querying a semantic catalog
+## Python queries
 
 ```python
 from semgem.query import SemanticCatalog
 
-with SemanticCatalog("outputs/semantic_catalog.sqlite") as catalog:
+with SemanticCatalog("semantic_catalog.sqlite") as catalog:
     models = catalog.list_models()
     reaction = catalog.get_entity("iJO1366", "reaction", "ATPM")
-    annotations = catalog.get_annotations("iJO1366", "reaction", "ATPM")
     concepts = catalog.get_concepts("iJO1366", "reaction", "ATPM")
 ```
 
-Entity queries always include the model ID because different models may reuse
-the same reaction, metabolite, or gene identifier. `explain_concept()` returns
-the fixed evidence codes, sources, observed values, explanations, and weights supporting an
-assignment. The query connection is read-only.
+Entity queries include the model ID because local identifiers can be reused by different models.
 
-The same read-only operations are available from the command line:
+## Output and provenance
 
-```bash
-semgem models outputs/semantic_catalog.sqlite
+The SQLite catalog preserves original model data separately from enriched assertions, semantic conclusions, and their supporting evidence. Provider versions, retrieval details, observed values, rule weights, and confidence scores are retained where applicable. See the [database schema](docs/database-schema.md) for the relational structure.
 
-semgem search outputs/semantic_catalog.sqlite ATPM --type reaction
+JSON exports use a versioned, model-independent structure suitable for downstream applications. Use `--model` to select models, `--no-evidence` to omit evidence records, and `--gzip` or a `.gz` suffix for compression.
 
-semgem entity outputs/semantic_catalog.sqlite \
-    --model iJO1366 --type reaction --id ATPM
+## Important limitations
 
-semgem annotations outputs/semantic_catalog.sqlite \
-    --model iJO1366 --type reaction --id ATPM
-
-semgem concepts outputs/semantic_catalog.sqlite \
-    --model iJO1366 --type reaction --id ATPM
-
-semgem explain outputs/semantic_catalog.sqlite \
-    --model iJO1366 --type reaction --id BIOMASS_Ec_iJO1366_core_53p95M \
-    --concept objective:biomass_production
-```
-
-Export the entire catalog, or selected models, as portable JSON:
-
-```bash
-semgem export outputs/semantic_catalog.sqlite \
-    --out outputs/semantic_catalog.json
-
-semgem export outputs/semantic_catalog.sqlite \
-    --model HumanGEM --out outputs/HumanGEM.json
-
-semgem export outputs/semantic_catalog.sqlite \
-    --out outputs/semantic_catalog.json.gz --compact
-```
-
-Analysis commands such as `summary`, `coverage`, and `get-concept` also accept
-`--format json` for scripts and downstream applications.
-
-`search` performs a case-insensitive substring search across entity IDs, names,
-annotation identifiers, and semantic concepts. Results include the matching
-field and source. Use `--model`, `--type`, `--source`, and `--limit` to narrow
-cross-model results.
-
-## Testing
-
-```bash
-pytest
-```
-
-The current suite covers extraction, canonical label normalization, fixed
-evidence generation, scoring, SBO hierarchy parsing, KEGG response parsing,
-MetaNetX/Rhea cross-reference parsing, static transport inference, provider
-caching, relational insertion,
-annotation normalization, duplicate detection, rollback, deletion, entity-type
-validation, and file hashing.
-
-## Architecture
-
-```text
-SBML model
-    ↓
-COBRApy loader
-    ↓
-typed extraction records
-    ↓
-raw model baseline
-    ↓
-managed SBO / MetaNetX / Rhea identity resolution
-    ↓
-optional batched KEGG pathway resolution
-    ↓
-fixed candidate evidence
-    ↓
-configurable provisional scoring
-    ↓
-multi-model SQLite semantic catalog
-```
-
-All reactions, metabolites, and genes receive a shared internal entity identity. Their original SBML identifiers are preserved. Type-specific tables store reaction, metabolite, and gene details, while annotations and semantic concepts reference the shared entity.
-
-See [docs/database-schema.md](docs/database-schema.md) for the relational design.
-
-## Evidence rules
-
-Canonical concepts are stored in:
-
-```text
-semgem/resources/concepts.toml
-```
-
-Fixed evidence templates, generation rules, provisional weights, and
-thresholds are stored in:
-
-```text
-semgem/resources/evidence_rules.toml
-```
-
-The Python evidence engine applies these definitions without embedding static
-KEGG identifier mappings. Current weights and thresholds are explicitly
-provisional and have not yet been biologically calibrated.
-
-## Project scope
-
-SemGEM is not:
-
-- a replacement for COBRApy or ModelSEED;
-- a new biological ontology;
-- a model reconstruction or gap-filling system; or
-- a source of definitive pathway truth.
-
-Its intended contribution is a consistent, evidence-preserving interface over heterogeneous model semantics and established external resources.
+- Semantic assignments are aids for exploration and software development, not validated biological annotations.
+- The concept vocabulary, rules, thresholds, and weights remain provisional pending broader biological curation.
+- Provider coverage depends on the identifiers and annotations available in each source model.
+- KEGG enrichment depends on network availability and KEGG usage conditions.
+- Schema migrations are not supported; catalogs made by older prototypes should be rebuilt from the source SBML files.
 
 ## Documentation
 
-- [Documentation index](docs/README.md)
-- [Project reasoning and thesis positioning](docs/project_reasoning.md)
+- [CLI reference](docs/cli-reference.md)
 - [Database schema](docs/database-schema.md)
-- [External enrichment design](docs/enrichment-design.md)
-- [Full-provider benchmark](docs/full_provider_benchmark_report.md)
-- [Biological evaluation plan](docs/biological-evaluation-todo.md)
-- [Future work](docs/future_work.md)
+- [Software and data-source licensing](docs/licensing.md)
 
-## Current limitations
+## Licensing status
 
-- The expanded reaction-level concept vocabulary remains provisional and has
-  not yet undergone the thesis-scale biological evaluation.
-- Confidence scores use simple additive rule weights and are not calibrated probabilities.
-- KEGG pathway coverage depends on usable reaction identities, network access,
-  and KEGG availability. MetaNetX/Rhea can bridge more reaction identities,
-  but models without identity annotations still cannot be pathway-enriched.
-- The current SQLite schema is regenerated during development; schema migrations are not supported.
-- Databases generated with the earlier prototype schema must be rebuilt from their source model files.
-- External resource licensing and redistribution requirements must be considered before publishing enriched datasets.
+No general software licence has yet been granted for SemGEM. The repository is publicly available for inspection and installation, but permission to modify or redistribute the source code has not yet been defined. External resources retain their own licences and terms; see the [licensing notes](docs/licensing.md).
