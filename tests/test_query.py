@@ -84,6 +84,43 @@ def test_catalog_lists_models(catalog_path):
     assert models[1].content_hash == "test-hash"
 
 
+def test_catalog_reports_statistics_and_actionable_coverage(catalog_path):
+    with SemanticCatalog(catalog_path) as catalog:
+        statistics = catalog.statistics()
+        coverage = catalog.coverage()
+
+    assert statistics.model_count == 2
+    assert statistics.reaction_count == 2
+    assert statistics.semantic_assignment_count == 2
+    assert coverage.total_reactions == 2
+    assert coverage.pathway_reactions == 0
+    assert coverage.actionable_non_pathway_reactions == 2
+    assert coverage.actionable_reactions == 2
+    assert coverage.generic_only_reactions == 0
+    assert coverage.unclassified_reactions == 0
+
+
+def test_catalog_filters_concept_assignments_and_unclassified_reactions(catalog_path):
+    with SemanticCatalog(catalog_path) as catalog:
+        assignments = catalog.get_concept_assignments(
+            "objective:model_objective",
+            model_id="test_model",
+            minimum_confidence=1.0,
+        )
+        unclassified = catalog.list_unclassified_reactions()
+
+    assert len(assignments) == 1
+    assert assignments[0].entity.model_id == "test_model"
+    assert assignments[0].concept.name == "objective:model_objective"
+    assert unclassified == []
+
+
+def test_catalog_reports_missing_model_for_aggregate_queries(catalog_path):
+    with SemanticCatalog(catalog_path) as catalog:
+        with pytest.raises(EntityNotFoundError, match="Model not found"):
+            catalog.coverage("missing")
+
+
 def test_catalog_resolves_entity_with_model_scope(catalog_path):
     with SemanticCatalog(catalog_path) as catalog:
         first = catalog.get_entity("test_model", "reaction", "BIOMASS_TEST")

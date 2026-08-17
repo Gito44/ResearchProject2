@@ -1,3 +1,6 @@
+import io
+import gzip
+import json
 import sqlite3
 
 import cobra
@@ -5,6 +8,7 @@ import pytest
 from typer.testing import CliRunner
 
 from semgem.cli import app, import_model
+from semgem.resources_manager import ResourceManager
 
 
 @pytest.fixture
@@ -14,7 +18,11 @@ def cli_catalog(tmp_path, small_model):
     cobra.io.write_sbml_model(small_model, model_path)
     result = CliRunner().invoke(
         app,
-        ["build", str(model_path), "--out", str(catalog_path)],
+        [
+            "build", str(model_path), "--out", str(catalog_path),
+            "--no-rhea", "--no-metanetx",
+            "--resource-dir", str(tmp_path / "resources"),
+        ],
     )
     assert result.exit_code == 0, result.output
     return catalog_path
@@ -38,6 +46,10 @@ def test_build_imports_multiple_models_into_one_catalog(tmp_path, small_model):
             str(second_path),
             "--out",
             str(catalog_path),
+            "--no-rhea",
+            "--no-metanetx",
+            "--resource-dir",
+            str(tmp_path / "resources"),
         ],
     )
 
@@ -72,6 +84,10 @@ def test_build_runs_bulk_sbo_enrichment_and_stores_explainable_conclusions(
             "--out",
             str(catalog_path),
             "--no-kegg",
+            "--no-rhea",
+            "--no-metanetx",
+            "--resource-dir",
+            str(tmp_path / "resources"),
         ],
     )
 
@@ -123,6 +139,10 @@ def test_build_discovers_models_recursively_and_deduplicates_paths(
             str(first_path),
             "--out",
             str(catalog_path),
+            "--no-rhea",
+            "--no-metanetx",
+            "--resource-dir",
+            str(tmp_path / "resources"),
         ],
     )
 
@@ -171,6 +191,10 @@ def test_build_without_kegg_recommends_a_new_catalogue(tmp_path, small_model):
             "--out",
             str(catalog_path),
             "--no-kegg",
+            "--no-rhea",
+            "--no-metanetx",
+            "--resource-dir",
+            str(tmp_path / "resources"),
         ],
     )
 
@@ -178,11 +202,145 @@ def test_build_without_kegg_recommends_a_new_catalogue(tmp_path, small_model):
     assert "Build a new catalogue with --kegg" in result.output
 
 
+def test_resources_command_reports_managed_cache_status(tmp_path):
+    manager = ResourceManager(
+        tmp_path,
+        opener=lambda request, timeout: io.BytesIO(b"xref\n"),
+    )
+    manager.ensure("rhea_xref")
+
+    result = CliRunner().invoke(
+        app,
+        ["resources", "--resource-dir", str(tmp_path), "--format", "json"],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    statuses = {item["key"]: item for item in payload["resources"]}
+    assert statuses["rhea_xref"]["verified"] is True
+    assert statuses["metanetx_reac_xref"]["available"] is False
+
+
 def test_models_command_lists_catalog_models(cli_catalog):
     result = CliRunner().invoke(app, ["models", str(cli_catalog)])
 
     assert result.exit_code == 0, result.output
     assert "test_model\tTest model" in result.output
+
+
+def test_summary_and_coverage_commands_report_actionable_results(cli_catalog):
+    runner = CliRunner()
+    summary_result = runner.invoke(app, ["summary", str(cli_catalog)])
+    coverage_result = runner.invoke(app, ["coverage", str(cli_catalog)])
+
+    assert summary_result.exit_code == 0, summary_result.output
+    assert "models\t1" in summary_result.output
+    assert "reactions\t1" in summary_result.output
+    assert coverage_result.exit_code == 0, coverage_result.output
+    assert "actionable_total\t1\t100.00%" in coverage_result.output
+    assert "pathway\t0\t0.00%" in coverage_result.output
+
+
+def test_analysis_commands_support_machine_readable_json(cli_catalog):
+    runner = CliRunner()
+    coverage_result = runner.invoke(
+        app, ["coverage", str(cli_catalog), "--format", "json"]
+    )
+    concept_result = runner.invoke(
+        app,
+        [
+            "get-concept",
+            str(cli_catalog),
+            "--concept",
+            "objective:model_objective",
+            "--format",
+            "json",
+        ],
+    )
+
+    assert coverage_result.exit_code == 0, coverage_result.output
+    assert json.loads(coverage_result.output)["actionable_coverage"] == 1.0
+    assert concept_result.exit_code == 0, concept_result.output
+    assert json.loads(concept_result.output)[0]["concept"]["id"] == (
+        "objective:model_objective"
+    )
+
+
+def test_export_command_writes_model_filtered_json(cli_catalog, tmp_path):
+    output_path = tmp_path / "export.json"
+    result = CliRunner().invoke(
+        app,
+        [
+            "export",
+            str(cli_catalog),
+            "--out",
+            str(output_path),
+            "--model",
+            "test_model",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    document = json.loads(output_path.read_text(encoding="utf-8"))
+    assert [model["id"] for model in document["models"]] == ["test_model"]
+    assert document["catalog"]["metadata"]["subsystem_evidence_enabled"] is True
+    assert document["catalog"]["metadata"]["concepts_sha256"]
+    assert document["models"][0]["entities"]["reactions"][0]["concepts"]
+
+
+def test_export_command_infers_gzip_from_output_suffix(cli_catalog, tmp_path):
+    output_path = tmp_path / "export.json.gz"
+    result = CliRunner().invoke(
+        app,
+        ["export", str(cli_catalog), "--out", str(output_path), "--compact"],
+    )
+
+    assert result.exit_code == 0, result.output
+    with gzip.open(output_path, "rt", encoding="utf-8") as file:
+        document = json.load(file)
+    assert document["semgem"]["format"] == "semgem-semantic-catalog"
+
+
+def test_get_concept_and_unclassified_commands(cli_catalog):
+    runner = CliRunner()
+    concept_result = runner.invoke(
+        app,
+        [
+            "get-concept",
+            str(cli_catalog),
+            "--concept",
+            "objective:model_objective",
+        ],
+    )
+    unclassified_result = runner.invoke(
+        app, ["unclassified", str(cli_catalog)]
+    )
+
+    assert concept_result.exit_code == 0, concept_result.output
+    assert "test_model\treaction\tBIOMASS_TEST" in concept_result.output
+    assert unclassified_result.exit_code == 0, unclassified_result.output
+    assert "No unclassified reactions found." in unclassified_result.output
+
+
+def test_providers_and_compare_commands(cli_catalog):
+    runner = CliRunner()
+    providers_result = runner.invoke(app, ["providers", str(cli_catalog)])
+    compare_result = runner.invoke(
+        app,
+        [
+            "compare",
+            str(cli_catalog),
+            "--model",
+            "test_model",
+            "--model",
+            "missing",
+        ],
+    )
+
+    assert providers_result.exit_code == 0, providers_result.output
+    assert "sbo\tcompleted" in providers_result.output
+    assert compare_result.exit_code == 1
+    assert "Model not found: missing" in compare_result.output
 
 
 def test_entity_command_shows_a_model_scoped_entity(cli_catalog):

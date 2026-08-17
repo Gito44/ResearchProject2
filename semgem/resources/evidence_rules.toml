@@ -361,7 +361,7 @@ operator = "contains_all_normalized_groups"
 value_groups = [["EX_"], ["photon", "light"]]
 
 [[model_rules]]
-concept_id = "pathway:glycolysis"
+concept_id = "pathway:glycolysis_gluconeogenesis"
 evidence_code = "exact_reaction_id_concept_match"
 entity_type = "reaction"
 target_field = "original_id"
@@ -369,7 +369,7 @@ operator = "in"
 values = ["PGI", "PFK", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
 
 [[model_rules]]
-concept_id = "pathway:glycolysis"
+concept_id = "pathway:glycolysis_gluconeogenesis"
 evidence_code = "curated_reaction_name_pattern"
 entity_type = "reaction"
 target_field = "name"

@@ -262,11 +262,12 @@ synonyms = ["protein metabolic process"]
 parents = ["pathway:metabolism"]
 anchors = ["protein", "peptide"]
 
-[concepts."pathway:glycolysis"]
+[concepts."pathway:glycolysis_gluconeogenesis"]
 category = "pathway"
-preferred_label = "Glycolysis"
-description = "Reactions associated with glycolysis."
+preferred_label = "Glycolysis / Gluconeogenesis"
+description = "Reactions associated with the combined KEGG glycolysis and gluconeogenesis pathway."
 synonyms = [
+    "glycolysis",
     "glycolytic pathway",
     "glycolysis / gluconeogenesis",
     "glycolysis and gluconeogenesis",

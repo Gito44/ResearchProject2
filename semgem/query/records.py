@@ -63,3 +63,42 @@ class SearchMatch:
 class SearchResult:
     entity: EntitySummary
     matches: tuple[SearchMatch, ...]
+
+
+@dataclass(frozen=True)
+class CatalogStatistics:
+    model_count: int
+    reaction_count: int
+    metabolite_count: int
+    gene_count: int
+    semantic_assignment_count: int
+
+
+@dataclass(frozen=True)
+class CoverageSummary:
+    model_id: str | None
+    total_reactions: int
+    pathway_reactions: int
+    actionable_non_pathway_reactions: int
+    actionable_reactions: int
+    generic_only_reactions: int
+    unclassified_reactions: int
+
+
+@dataclass(frozen=True)
+class ConceptAssignment:
+    entity: EntitySummary
+    concept: ConceptSummary
+
+
+@dataclass(frozen=True)
+class ProviderRunResult:
+    provider: str
+    status: str
+    resource_version: str | None
+    requested: int
+    resolved: int
+    unresolved: int
+    started_at: str
+    completed_at: str | None
+    error_summary: str | None

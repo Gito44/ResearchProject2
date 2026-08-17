@@ -116,7 +116,7 @@ def test_old_schema_is_rejected_with_a_clear_error(tmp_path, schema_path):
     connection.close()
 
     database = SemanticDatabase(db_path, schema_path)
-    with pytest.raises(IncompatibleSchemaError, match="version 5 is required"):
+    with pytest.raises(IncompatibleSchemaError, match="version 6 is required"):
         database.initialise()
     database.close()
 
@@ -143,7 +143,7 @@ def test_partial_current_schema_is_rejected_with_a_clear_error(
             concept_name TEXT,
             confidence REAL
         );
-        PRAGMA user_version = 5;
+        PRAGMA user_version = 6;
         """
     )
     connection.close()
@@ -168,6 +168,20 @@ def test_complete_model_import_uses_shared_entity_ids(
     assert database.conn.execute("SELECT COUNT(*) FROM reactions").fetchone()[0] == 1
     assert database.conn.execute("SELECT COUNT(*) FROM reaction_genes").fetchone()[0] == 1
     assert database.conn.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
+def test_catalog_metadata_round_trips_json_values(database):
+    database.set_catalog_metadata(
+        {
+            "subsystem_evidence_enabled": False,
+            "concepts_sha256": "abc123",
+        }
+    )
+
+    assert database.catalog_metadata() == {
+        "concepts_sha256": "abc123",
+        "subsystem_evidence_enabled": False,
+    }
 
 
 def test_annotation_lists_are_normalised_to_individual_rows(

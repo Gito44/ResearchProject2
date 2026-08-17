@@ -28,7 +28,7 @@ def test_packaged_concepts_and_policy_load():
     concepts, policy = loaded_policy()
 
     assert len(concepts) >= 124
-    assert "pathway:glycolysis" in concepts
+    assert "pathway:glycolysis_gluconeogenesis" in concepts
     assert "reaction_type:biochemical_reaction" in concepts
     assert "pathway:nucleotide_metabolism" in concepts
     assert "pathway:cofactor_biosynthesis" in concepts
@@ -46,7 +46,7 @@ def test_label_normalization_and_synonym_matching():
         "glycolysis gluconeogenesis"
     )
     assert registry.match_label("glycolysis & gluconeogenesis") == (
-        "pathway:glycolysis",
+        "pathway:glycolysis_gluconeogenesis",
     )
     assert registry.match_label("glycolysi") == ()
 
@@ -55,7 +55,7 @@ def test_label_normalization_and_synonym_matching():
     ("encoded_label", "expected_concept"),
     [
         ("S_Fatty_Acid__Biosynthesis", "pathway:fatty_acid_metabolism"),
-        ("S_GlycolysisGluconeogenesis", "pathway:glycolysis"),
+        ("S_GlycolysisGluconeogenesis", "pathway:glycolysis_gluconeogenesis"),
         (
             "S_Purine_and_Pyrimidine_Biosynthesis",
             "pathway:purine_and_pyrimidine_biosynthesis",
@@ -83,17 +83,17 @@ def test_concept_registry_returns_transitive_ancestors_broad_to_narrow_safe():
     concepts, _ = loaded_policy()
     registry = ConceptRegistry(concepts)
 
-    assert registry.ancestors("pathway:glycolysis") == (
+    assert registry.ancestors("pathway:glycolysis_gluconeogenesis") == (
         "pathway:carbohydrate_metabolism",
         "pathway:energy_metabolism",
         "pathway:metabolism",
     )
     assert registry.hierarchy_compatible(
-        "pathway:glycolysis",
+        "pathway:glycolysis_gluconeogenesis",
         "pathway:carbohydrate_metabolism",
     )
     assert not registry.hierarchy_compatible(
-        "pathway:glycolysis",
+        "pathway:glycolysis_gluconeogenesis",
         "pathway:lipid_metabolism",
     )
     lipopolysaccharide_ancestors = registry.ancestors(
@@ -122,7 +122,7 @@ def test_explicit_semantic_anchors_match_reaction_and_metabolite_text():
 
     assert matches["pathway:lipid_metabolism"] == "carnitine"
     assert matches["pathway:carnitine_shuttle"] == "carnitine"
-    assert "pathway:glycolysis" not in matches
+    assert "pathway:glycolysis_gluconeogenesis" not in matches
 
     fragment_matches = dict(
         registry.match_anchors("3-hydroxynonadecanoyl-CoA is oxidized")
@@ -326,12 +326,12 @@ def test_weak_name_match_alone_does_not_create_a_conclusion():
     scored = EvidenceScorer(policy, concepts).score(candidates)
 
     assert any(
-        candidate.concept_id == "pathway:glycolysis"
+        candidate.concept_id == "pathway:glycolysis_gluconeogenesis"
         and candidate.evidence_code == "model_name_label_match"
         for candidate in candidates
     )
     assert all(
-        conclusion.concept_id != "pathway:glycolysis"
+        conclusion.concept_id != "pathway:glycolysis_gluconeogenesis"
         for conclusion in scored
     )
 
@@ -393,7 +393,7 @@ def test_subsystem_evidence_can_be_disabled_without_text_leakage():
         ConceptRegistry(concepts),
     ).generate(database, include_subsystem_evidence=False)
 
-    assert all(candidate.concept_id != "pathway:glycolysis" for candidate in candidates)
+    assert all(candidate.concept_id != "pathway:glycolysis_gluconeogenesis" for candidate in candidates)
 
 
 def test_curated_enzyme_name_generates_static_pathway_evidence():
@@ -424,7 +424,7 @@ def test_curated_enzyme_name_generates_static_pathway_evidence():
     conclusions = EvidenceScorer(policy, concepts).score(candidates)
 
     assert any(
-        conclusion.concept_id == "pathway:glycolysis"
+        conclusion.concept_id == "pathway:glycolysis_gluconeogenesis"
         for conclusion in conclusions
     )
 
@@ -495,7 +495,7 @@ def test_model_subsystem_can_target_the_same_canonical_pathway():
     ).generate(database)
 
     assert any(
-        candidate.concept_id == "pathway:glycolysis"
+        candidate.concept_id == "pathway:glycolysis_gluconeogenesis"
         and candidate.evidence_code == "model_subsystem_label_match"
         for candidate in candidates
     )
@@ -752,7 +752,7 @@ def test_strict_id_prefix_rules_avoid_similar_non_boundary_ids(reaction_id):
 @pytest.mark.parametrize(
     ("reaction_id", "concept_id"),
     [
-        ("PGI", "pathway:glycolysis"),
+        ("PGI", "pathway:glycolysis_gluconeogenesis"),
         ("TKT1", "pathway:pentose_phosphate_pathway"),
         ("ACONT", "pathway:tricarboxylic_acid_cycle"),
     ],
@@ -844,7 +844,7 @@ def test_external_label_evidence_targets_canonical_concept():
     assert candidates == [
         CandidateEvidence(
             entity_id=10,
-            concept_id="pathway:glycolysis",
+            concept_id="pathway:glycolysis_gluconeogenesis",
             evidence_code="kegg_pathway_label_match",
             source="kegg",
             explanation=policy.definitions[
@@ -943,7 +943,7 @@ def test_scorer_materializes_broader_pathways_from_narrow_conclusion():
     concepts, policy = loaded_policy()
     candidate = CandidateEvidence(
         entity_id=10,
-        concept_id="pathway:glycolysis",
+        concept_id="pathway:glycolysis_gluconeogenesis",
         evidence_code="kegg_pathway_label_match",
         source="kegg",
         explanation="runtime pathway match",
@@ -953,7 +953,7 @@ def test_scorer_materializes_broader_pathways_from_narrow_conclusion():
     by_id = {item.concept_id: item for item in conclusions}
 
     assert set(by_id) == {
-        "pathway:glycolysis",
+        "pathway:glycolysis_gluconeogenesis",
         "pathway:carbohydrate_metabolism",
         "pathway:energy_metabolism",
         "pathway:metabolism",

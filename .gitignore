@@ -16,3 +16,4 @@ models/*.xml
 models/*.xml.gz
 models/*.json
 models/*.json.gz
+/models_test/

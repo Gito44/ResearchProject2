@@ -54,14 +54,14 @@ def test_pipeline_turns_runtime_kegg_relationship_into_stored_conclusion(
                    ce.evidence_code, ce.relationship_id
             FROM semantic_concepts AS sc
             JOIN concept_evidence AS ce ON ce.concept_id = sc.id
-            WHERE sc.concept_name = 'pathway:glycolysis'
+            WHERE sc.concept_name = 'pathway:glycolysis_gluconeogenesis'
             """
         ).fetchone()
 
     assert summary.providers[0].status == "completed"
     assert conclusion[:4] == (
-        "pathway:glycolysis",
-        "Glycolysis",
+        "pathway:glycolysis_gluconeogenesis",
+        "Glycolysis / Gluconeogenesis",
         0.9,
         "kegg_pathway_label_match",
     )
@@ -164,7 +164,7 @@ kegg.reaction:R00771\tMNXR1\tphosphoglucose isomerase
             SELECT sc.concept_name, ce.evidence_code, ce.source
             FROM semantic_concepts AS sc
             JOIN concept_evidence AS ce ON ce.concept_id = sc.id
-            WHERE sc.concept_name = 'pathway:glycolysis'
+            WHERE sc.concept_name = 'pathway:glycolysis_gluconeogenesis'
             """
         ).fetchone()
 
@@ -173,7 +173,7 @@ kegg.reaction:R00771\tMNXR1\tphosphoglucose isomerase
         "kegg",
     ]
     assert conclusion == (
-        "pathway:glycolysis",
+        "pathway:glycolysis_gluconeogenesis",
         "metanetx_bridged_pathway_label_match",
         "metanetx",
     )
@@ -234,12 +234,12 @@ def test_pipeline_uses_rhea_annotation_without_direct_kegg_annotation(
             SELECT sc.concept_name, ce.evidence_code, ce.source
             FROM semantic_concepts AS sc
             JOIN concept_evidence AS ce ON ce.concept_id = sc.id
-            WHERE sc.concept_name = 'pathway:glycolysis'
+            WHERE sc.concept_name = 'pathway:glycolysis_gluconeogenesis'
             """
         ).fetchone()
 
     assert conclusion == (
-        "pathway:glycolysis",
+        "pathway:glycolysis_gluconeogenesis",
         "rhea_bridged_pathway_label_match",
         "rhea",
     )

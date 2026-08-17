@@ -4,6 +4,10 @@ SemGEM is a research prototype for generating an explainable semantic layer over
 
 Different GEMs often represent equivalent biological concepts using different combinations of reaction IDs, names, subsystem labels, SBML Groups, and external annotations. Code written for one model can therefore fail when applied to another model. SemGEM aims to normalize this heterogeneous information into a consistent, queryable representation for scientists and developers.
 
+Version 0.11.0 is the implementation frozen for the MSc thesis evaluation.
+Development after this point is limited to documented bug fixes until the
+reported experiments are complete.
+
 ## Current capabilities
 
 The current version can:
@@ -12,15 +16,17 @@ The current version can:
 - extract reactions, metabolites, genes, stoichiometry, and gene associations;
 - preserve existing model annotations as individually queryable identifiers;
 - store multiple models in one relational SQLite catalog;
-- resolve SBO annotations against a packaged, licensed ontology snapshot;
-- bridge reaction identities through user-supplied official MetaNetX and Rhea
+- resolve SBO annotations against a managed official ontology snapshot;
+- automatically download, verify, version, and reuse official SBO, MetaNetX,
+  and Rhea resources in a user-local cache;
+- bridge reaction identities through official MetaNetX and Rhea
   cross-reference files;
 - classify a small, transparent set of central-metabolism community reaction
   IDs through exact equality rules;
 - infer translocation and compartment-specific transport from reaction
   stoichiometry and the model's named compartments;
 - treat annotation-free BiGG-style local reaction IDs as lookup candidates
-  that must be confirmed by a user-supplied MetaNetX table;
+  that must be confirmed by the managed MetaNetX resource;
 - recognize strict KEGG, Rhea, and MetaNetX accessions used directly as local
   reaction IDs without fabricating source annotations;
 - optionally resolve KEGG reaction-to-pathway relationships at runtime;
@@ -32,10 +38,11 @@ The current version can:
 - record confidence, observed values, provider provenance, and evidence weights;
 - detect exact duplicate models and model-identity conflicts;
 - import each model atomically; and
-- remove dependent model data through foreign-key cascades.
+- remove dependent model data through foreign-key cascades; and
+- export a model-independent, versioned JSON semantic catalog.
 
-The package currently builds, enriches, classifies, and queries the semantic
-database. JSON export is not yet implemented.
+The package currently builds, enriches, classifies, queries, and exports the
+semantic catalog.
 
 ## Installation
 
@@ -76,9 +83,15 @@ model collections:
 semgem build path/to/models/ --out outputs/semantic_catalog.sqlite
 ```
 
-SBO enrichment runs locally by default. KEGG enrichment is recommended but
-optional because it needs internet access, takes longer, and has separate usage
-conditions:
+SBO, Rhea, and MetaNetX reaction-identity enrichment run by default. On the
+first run, missing official resources are placed in `~/.semgem/resources`;
+subsequent runs verify their SHA-256 hashes and reuse them. MetaNetX release
+4.5 is pinned so a future upstream release cannot silently change a result.
+The cache location can be changed with `--resource-dir` or the
+`SEMGEM_RESOURCE_DIR` environment variable.
+
+KEGG enrichment is recommended but optional because it needs internet access,
+takes longer, and has separate usage conditions:
 
 ```bash
 semgem build path/to/models/ \
@@ -92,16 +105,29 @@ user's local catalog; users remain responsible for complying with KEGG terms
 and should not redistribute KEGG-derived catalogs without appropriate
 permission.
 
-MetaNetX and Rhea identity bridging is enabled by passing official downloaded
-cross-reference files. SemGEM deliberately does not bundle these datasets:
+No manual provider downloads are required for the normal workflow:
 
 ```bash
 semgem build path/to/models/ \
     --out outputs/semantic_catalog.sqlite \
-    --metanetx-xref path/to/reac_xref.tsv \
-    --rhea-xref path/to/rhea2xrefs.tsv \
     --kegg
 ```
+
+The normal MetaNetX download is the reaction cross-reference (currently about
+77 MB). Experimental metabolite standardization and stoichiometric matching
+need a much larger first-run download and are therefore explicit:
+
+```bash
+semgem build path/to/models/ \
+    --out outputs/semantic_catalog.sqlite \
+    --metanetx-chemistry \
+    --kegg
+```
+
+Use `semgem resources` to inspect cached versions and integrity. Use
+`--refresh-resources` to acquire fresh copies, or `--offline` to prohibit all
+downloads and require a verified cache. Explicit provider-file options remain
+available for controlled experiments.
 
 The identity providers run before KEGG, allowing model BiGG, MetaNetX, or Rhea
 annotations to expose additional KEGG reaction identifiers. KEGG then obtains
@@ -120,7 +146,7 @@ cross-referenced records may retain restrictions from their original sources.
 Users should retain provenance and review the applicable source terms before
 redistributing enriched catalogs.
 
-Experimental exact community-ID rules are enabled in v0.6.0. Their scope,
+Experimental exact community-ID rules are included. Their scope,
 provenance, and evaluation limitations are documented in
 [`docs/static-identifier-mappings.md`](docs/static-identifier-mappings.md).
 
@@ -181,6 +207,22 @@ semgem explain outputs/semantic_catalog.sqlite \
     --concept objective:biomass_production
 ```
 
+Export the entire catalog, or selected models, as portable JSON:
+
+```bash
+semgem export outputs/semantic_catalog.sqlite \
+    --out outputs/semantic_catalog.json
+
+semgem export outputs/semantic_catalog.sqlite \
+    --model HumanGEM --out outputs/HumanGEM.json
+
+semgem export outputs/semantic_catalog.sqlite \
+    --out outputs/semantic_catalog.json.gz --compact
+```
+
+Analysis commands such as `summary`, `coverage`, and `get-concept` also accept
+`--format json` for scripts and downstream applications.
+
 `search` performs a case-insensitive substring search across entity IDs, names,
 annotation identifiers, and semantic concepts. Results include the matching
 field and source. Use `--model`, `--type`, `--source`, and `--limit` to narrow
@@ -210,7 +252,7 @@ typed extraction records
     ↓
 raw model baseline
     ↓
-SBO / optional MetaNetX and Rhea identity resolution
+managed SBO / MetaNetX / Rhea identity resolution
     ↓
 optional batched KEGG pathway resolution
     ↓
@@ -257,15 +299,13 @@ Its intended contribution is a consistent, evidence-preserving interface over he
 
 ## Documentation
 
-- [Project reasoning and preliminary findings](docs/project_reasoning.md)
+- [Documentation index](docs/README.md)
+- [Project reasoning and thesis positioning](docs/project_reasoning.md)
 - [Database schema](docs/database-schema.md)
 - [External enrichment design](docs/enrichment-design.md)
-- [Provisional concept inventory and smoke evaluation](docs/concept-inventory.md)
-- [Provisional biological and multi-model evaluation](docs/evaluation-report.md)
-- [Experimental exact reaction-ID mappings](docs/static-identifier-mappings.md)
+- [Full-provider benchmark](docs/full_provider_benchmark_report.md)
+- [Biological evaluation plan](docs/biological-evaluation-todo.md)
 - [Future work](docs/future_work.md)
-- [Living TODO list](docs/todo.md)
-- [External data-source contact plan](docs/data-source-contacts.md)
 
 ## Current limitations
 
@@ -275,8 +315,6 @@ Its intended contribution is a consistent, evidence-preserving interface over he
 - KEGG pathway coverage depends on usable reaction identities, network access,
   and KEGG availability. MetaNetX/Rhea can bridge more reaction identities,
   but models without identity annotations still cannot be pathway-enriched.
-- Dedicated pathway listing/filtering commands are not yet implemented;
-  canonical pathway concepts remain searchable through existing queries.
 - The current SQLite schema is regenerated during development; schema migrations are not supported.
 - Databases generated with the earlier prototype schema must be rebuilt from their source model files.
 - External resource licensing and redistribution requirements must be considered before publishing enriched datasets.

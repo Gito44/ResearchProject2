@@ -47,10 +47,10 @@ class SemanticDatabase:
         ).fetchone()
         if existing_models_table is not None:
             schema_version = self.conn.execute("PRAGMA user_version").fetchone()[0]
-            if schema_version != 5:
+            if schema_version != 6:
                 raise IncompatibleSchemaError(
                     f"The existing database uses SemGEM schema version "
-                    f"{schema_version}; version 5 is required. Create a new "
+                    f"{schema_version}; version 6 is required. Create a new "
                     "catalog and rebuild it from the source model files."
                 )
             columns = {
@@ -84,6 +84,29 @@ class SemanticDatabase:
 
         with self.schema_path.open("r", encoding="utf-8") as schema_file:
             self.conn.executescript(schema_file.read())
+
+    def set_catalog_metadata(self, values: dict[str, Any]) -> None:
+        """Store versioned pipeline settings required to interpret conclusions."""
+        with self.conn:
+            self.conn.executemany(
+                """
+                INSERT INTO catalog_metadata (key, value_json)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json
+                """,
+                [
+                    (key, json.dumps(value, sort_keys=True))
+                    for key, value in values.items()
+                ],
+            )
+
+    def catalog_metadata(self) -> dict[str, Any]:
+        return {
+            key: json.loads(value)
+            for key, value in self.conn.execute(
+                "SELECT key, value_json FROM catalog_metadata ORDER BY key"
+            )
+        }
 
     def import_model(
         self,

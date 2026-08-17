@@ -162,4 +162,5 @@ The current schema intentionally postpones:
 - SQL triggers for subtype enforcement; and
 - database backends other than SQLite.
 
-These decisions are tracked in [todo.md](todo.md) and discussed in [future_work.md](future_work.md).
+These decisions are discussed in [future_work.md](future_work.md). The completed
+development ledger is retained in the documentation archive.

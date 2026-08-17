@@ -3,11 +3,15 @@ from pathlib import Path
 
 from semgem.query.records import (
     AnnotationResult,
+    CatalogStatistics,
+    ConceptAssignment,
     ConceptExplanation,
     ConceptSummary,
+    CoverageSummary,
     EntitySummary,
     EvidenceResult,
     ModelSummary,
+    ProviderRunResult,
     SearchMatch,
     SearchResult,
 )
@@ -50,6 +54,224 @@ class SemanticCatalog:
                 name=row["name"],
                 source_file=row["source_file"],
                 content_hash=row["content_hash"],
+            )
+            for row in rows
+        ]
+
+    def statistics(self, model_id: str | None = None) -> CatalogStatistics:
+        """Return basic catalog or model-scoped entity and assignment totals."""
+        if model_id is not None:
+            self._require_model(model_id)
+        condition = "" if model_id is None else "WHERE m.original_id = ?"
+        parameters = () if model_id is None else (model_id,)
+        counts = {
+            row[0]: row[1]
+            for row in self.conn.execute(
+                f"""
+                SELECT e.entity_type, COUNT(*)
+                FROM entities AS e
+                JOIN models AS m ON m.id = e.model_id
+                {condition}
+                GROUP BY e.entity_type
+                """,
+                parameters,
+            )
+        }
+        assignment_count = self.conn.execute(
+            f"""
+            SELECT COUNT(*)
+            FROM semantic_concepts AS c
+            JOIN entities AS e ON e.id = c.entity_id
+            JOIN models AS m ON m.id = e.model_id
+            {condition}
+            """,
+            parameters,
+        ).fetchone()[0]
+        model_count = self.conn.execute(
+            "SELECT COUNT(*) FROM models"
+            if model_id is None
+            else "SELECT COUNT(*) FROM models WHERE original_id = ?",
+            parameters,
+        ).fetchone()[0]
+        return CatalogStatistics(
+            model_count=model_count,
+            reaction_count=counts.get("reaction", 0),
+            metabolite_count=counts.get("metabolite", 0),
+            gene_count=counts.get("gene", 0),
+            semantic_assignment_count=assignment_count,
+        )
+
+    def coverage(self, model_id: str | None = None) -> CoverageSummary:
+        """Return mutually interpretable reaction-level semantic coverage."""
+        if model_id is not None:
+            self._require_model(model_id)
+        condition = "" if model_id is None else "AND m.original_id = ?"
+        parameters = () if model_id is None else (model_id,)
+        row = self.conn.execute(
+            f"""
+            WITH reaction_flags AS (
+                SELECT e.id,
+                       MAX(CASE WHEN c.concept_name LIKE 'pathway:%'
+                                THEN 1 ELSE 0 END) AS pathway,
+                       MAX(CASE
+                           WHEN c.concept_name LIKE 'pathway:%'
+                             OR c.concept_name LIKE 'objective:%'
+                             OR c.concept_name LIKE 'exchange:%'
+                             OR c.concept_name LIKE 'transport:%'
+                             OR (
+                                 c.concept_name LIKE 'reaction_type:%'
+                                 AND c.concept_name <>
+                                     'reaction_type:biochemical_reaction'
+                             )
+                           THEN 1 ELSE 0 END) AS actionable,
+                       MAX(CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END) AS covered
+                FROM entities AS e
+                JOIN models AS m ON m.id = e.model_id
+                LEFT JOIN semantic_concepts AS c ON c.entity_id = e.id
+                WHERE e.entity_type = 'reaction' {condition}
+                GROUP BY e.id
+            )
+            SELECT COUNT(*) AS total,
+                   SUM(pathway) AS pathway,
+                   SUM(CASE WHEN actionable = 1 AND pathway = 0
+                            THEN 1 ELSE 0 END) AS actionable_non_pathway,
+                   SUM(actionable) AS actionable,
+                   SUM(CASE WHEN covered = 1 AND actionable = 0
+                            THEN 1 ELSE 0 END) AS generic_only,
+                   SUM(CASE WHEN covered = 0 THEN 1 ELSE 0 END) AS unclassified
+            FROM reaction_flags
+            """,
+            parameters,
+        ).fetchone()
+        return CoverageSummary(
+            model_id=model_id,
+            total_reactions=row["total"] or 0,
+            pathway_reactions=row["pathway"] or 0,
+            actionable_non_pathway_reactions=row["actionable_non_pathway"] or 0,
+            actionable_reactions=row["actionable"] or 0,
+            generic_only_reactions=row["generic_only"] or 0,
+            unclassified_reactions=row["unclassified"] or 0,
+        )
+
+    def get_concept_assignments(
+        self,
+        concept_name: str,
+        model_id: str | None = None,
+        minimum_confidence: float = 0.0,
+        limit: int = 100,
+    ) -> list[ConceptAssignment]:
+        """Return entities assigned to one canonical concept."""
+        if not 0.0 <= minimum_confidence <= 1.0:
+            raise ValueError("Minimum confidence must be between 0 and 1.")
+        if limit < 1:
+            raise ValueError("Search limit must be at least 1.")
+        if model_id is not None:
+            self._require_model(model_id)
+        model_condition = "" if model_id is None else "AND m.original_id = ?"
+        parameters = [concept_name, minimum_confidence]
+        if model_id is not None:
+            parameters.append(model_id)
+        parameters.append(limit)
+        rows = self.conn.execute(
+            f"""
+            SELECT e.id AS internal_id, m.original_id AS model_id,
+                   e.entity_type, e.original_id, e.name,
+                   c.concept_name, c.preferred_label, c.confidence
+            FROM semantic_concepts AS c
+            JOIN entities AS e ON e.id = c.entity_id
+            JOIN models AS m ON m.id = e.model_id
+            WHERE c.concept_name = ? AND c.confidence >= ? {model_condition}
+            ORDER BY m.original_id, e.entity_type, e.original_id
+            LIMIT ?
+            """,
+            parameters,
+        ).fetchall()
+        return [
+            ConceptAssignment(
+                entity=EntitySummary(
+                    internal_id=row["internal_id"],
+                    model_id=row["model_id"],
+                    entity_type=row["entity_type"],
+                    original_id=row["original_id"],
+                    name=row["name"],
+                ),
+                concept=ConceptSummary(
+                    name=row["concept_name"],
+                    preferred_label=row["preferred_label"],
+                    confidence=row["confidence"],
+                ),
+            )
+            for row in rows
+        ]
+
+    def list_unclassified_reactions(
+        self,
+        model_id: str | None = None,
+        limit: int = 100,
+    ) -> list[EntitySummary]:
+        """Return reactions with no accepted semantic concept."""
+        if limit < 1:
+            raise ValueError("Search limit must be at least 1.")
+        if model_id is not None:
+            self._require_model(model_id)
+        condition = "" if model_id is None else "AND m.original_id = ?"
+        parameters = [] if model_id is None else [model_id]
+        parameters.append(limit)
+        rows = self.conn.execute(
+            f"""
+            SELECT e.id AS internal_id, m.original_id AS model_id,
+                   e.entity_type, e.original_id, e.name
+            FROM entities AS e
+            JOIN models AS m ON m.id = e.model_id
+            LEFT JOIN semantic_concepts AS c ON c.entity_id = e.id
+            WHERE e.entity_type = 'reaction' {condition}
+            GROUP BY e.id
+            HAVING COUNT(c.id) = 0
+            ORDER BY m.original_id, e.original_id
+            LIMIT ?
+            """,
+            parameters,
+        ).fetchall()
+        return [
+            EntitySummary(
+                internal_id=row["internal_id"],
+                model_id=row["model_id"],
+                entity_type=row["entity_type"],
+                original_id=row["original_id"],
+                name=row["name"],
+            )
+            for row in rows
+        ]
+
+    def list_provider_runs(self) -> list[ProviderRunResult]:
+        """Return provider executions and their resolution summaries."""
+        if self.conn.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'enrichment_runs'
+            """
+        ).fetchone() is None:
+            return []
+        rows = self.conn.execute(
+            """
+            SELECT provider, status, resource_version, requested_count,
+                   resolved_count, unresolved_count, started_at,
+                   completed_at, error_summary
+            FROM enrichment_runs
+            ORDER BY id
+            """
+        ).fetchall()
+        return [
+            ProviderRunResult(
+                provider=row["provider"],
+                status=row["status"],
+                resource_version=row["resource_version"],
+                requested=row["requested_count"],
+                resolved=row["resolved_count"],
+                unresolved=row["unresolved_count"],
+                started_at=row["started_at"],
+                completed_at=row["completed_at"],
+                error_summary=row["error_summary"],
             )
             for row in rows
         ]
@@ -344,6 +566,12 @@ class SemanticCatalog:
                 f"Entity not found: {model_id}/{entity_type}/{entity_id}."
             )
         return row
+
+    def _require_model(self, model_id: str) -> None:
+        if self.conn.execute(
+            "SELECT 1 FROM models WHERE original_id = ?", (model_id,)
+        ).fetchone() is None:
+            raise EntityNotFoundError(f"Model not found: {model_id}.")
 
     def close(self) -> None:
         self.conn.close()

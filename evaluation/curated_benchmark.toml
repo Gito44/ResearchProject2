@@ -6,7 +6,7 @@ Expected memberships were written independently of SemGEM output.
 """
 
 scoped_concepts = [
-    "pathway:glycolysis",
+    "pathway:glycolysis_gluconeogenesis",
     "pathway:pentose_phosphate_pathway",
     "pathway:tricarboxylic_acid_cycle",
     "pathway:photosynthesis",
@@ -20,7 +20,7 @@ scoped_concepts = [
 
 [[sets]]
 model = "e_coli_core"
-concept = "pathway:glycolysis"
+concept = "pathway:glycolysis_gluconeogenesis"
 reactions = ["PFK", "PGI", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
 
 [[sets]]
@@ -35,7 +35,7 @@ reactions = ["CS", "ACONTa", "ACONTb", "ICDHyr", "AKGDH", "SUCOAS", "FUM", "MDH"
 
 [[sets]]
 model = "iJO1366"
-concept = "pathway:glycolysis"
+concept = "pathway:glycolysis_gluconeogenesis"
 reactions = ["PFK", "PGI", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
 
 [[sets]]
@@ -50,7 +50,7 @@ reactions = ["CS", "ACONTa", "ACONTb", "ICDHyr", "AKGDH", "SUCOAS", "FUM", "MDH"
 
 [[sets]]
 model = "iJN678"
-concept = "pathway:glycolysis"
+concept = "pathway:glycolysis_gluconeogenesis"
 reactions = ["PFK", "PGI", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
 
 [[sets]]
@@ -65,7 +65,7 @@ reactions = ["CS", "ACONT", "ICDHyr", "SUCOAS", "FUM"]
 
 [[sets]]
 model = "iMM904"
-concept = "pathway:glycolysis"
+concept = "pathway:glycolysis_gluconeogenesis"
 reactions = ["PFK", "PGI", "FBA", "TPI", "GAPD", "PGK", "PGM", "ENO", "PYK"]
 
 [[sets]]

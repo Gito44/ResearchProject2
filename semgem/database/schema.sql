@@ -9,6 +9,11 @@ CREATE TABLE IF NOT EXISTS models (
     compartments_json TEXT NOT NULL DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS catalog_metadata (
+    key TEXT PRIMARY KEY,
+    value_json TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS entities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     model_id INTEGER NOT NULL,
@@ -187,4 +192,4 @@ CREATE TABLE IF NOT EXISTS concept_evidence (
     CHECK (weight >= 0.0 AND weight <= 1.0)
 );
 
-PRAGMA user_version = 5;
+PRAGMA user_version = 6;
