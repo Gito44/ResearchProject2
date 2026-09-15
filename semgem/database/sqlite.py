@@ -398,12 +398,21 @@ class SemanticDatabase:
         """Store one provider's enrichment records atomically."""
         try:
             with self.conn:
+                term_ids: dict[tuple[str, str], int] = {}
                 for term in terms:
-                    self._upsert_external_term(term)
+                    term_ids[(term.source, term.identifier)] = (
+                        self._upsert_external_term(term)
+                    )
                 for relationship in relationships:
-                    self._insert_external_term_relationship(relationship)
+                    self._insert_external_term_relationship(
+                        relationship,
+                        term_ids=term_ids,
+                    )
                 for assertion in assertions:
-                    self._insert_enrichment_assertion(assertion)
+                    self._insert_enrichment_assertion(
+                        assertion,
+                        term_ids=term_ids,
+                    )
         except Exception:
             self.conn.rollback()
             raise
@@ -462,16 +471,26 @@ class SemanticDatabase:
     def _insert_external_term_relationship(
         self,
         relationship: ExternalTermRelationshipRecord,
+        term_ids: dict[tuple[str, str], int] | None = None,
     ) -> int:
-        subject_id = self._external_term_id(
+        term_ids = term_ids if term_ids is not None else {}
+        subject_key = (
             relationship.subject_source,
             relationship.subject_identifier,
         )
-        object_id = self._external_term_id(
+        object_key = (
             relationship.object_source,
             relationship.object_identifier,
         )
-        self.conn.execute(
+        subject_id = term_ids.get(subject_key)
+        if subject_id is None:
+            subject_id = self._external_term_id(*subject_key)
+            term_ids[subject_key] = subject_id
+        object_id = term_ids.get(object_key)
+        if object_id is None:
+            object_id = self._external_term_id(*object_key)
+            term_ids[object_key] = object_id
+        cursor = self.conn.execute(
             """
             INSERT OR IGNORE INTO external_term_relationships (
                 subject_term_id,
@@ -482,16 +501,19 @@ class SemanticDatabase:
             """,
             (subject_id, relationship.predicate, object_id),
         )
-        relationship_id = self.conn.execute(
-            """
-            SELECT id
-            FROM external_term_relationships
-            WHERE subject_term_id = ?
-              AND predicate = ?
-              AND object_term_id = ?
-            """,
-            (subject_id, relationship.predicate, object_id),
-        ).fetchone()[0]
+        if cursor.rowcount == 1:
+            relationship_id = cursor.lastrowid
+        else:
+            relationship_id = self.conn.execute(
+                """
+                SELECT id
+                FROM external_term_relationships
+                WHERE subject_term_id = ?
+                  AND predicate = ?
+                  AND object_term_id = ?
+                """,
+                (subject_id, relationship.predicate, object_id),
+            ).fetchone()[0]
         self._replace_provider_relationship_evidence(
             relationship_id,
             relationship.evidence,
@@ -544,6 +566,7 @@ class SemanticDatabase:
     def _insert_enrichment_assertion(
         self,
         assertion: EnrichmentAssertionRecord,
+        term_ids: dict[tuple[str, str], int] | None = None,
     ) -> None:
         if self.conn.execute(
             "SELECT 1 FROM entities WHERE id = ?",
@@ -551,11 +574,13 @@ class SemanticDatabase:
         ).fetchone() is None:
             raise ValueError(f"Entity {assertion.entity_id} is not stored.")
 
-        term_id = self._external_term_id(
-            assertion.term_source,
-            assertion.term_identifier,
-        )
-        self.conn.execute(
+        term_ids = term_ids if term_ids is not None else {}
+        term_key = (assertion.term_source, assertion.term_identifier)
+        term_id = term_ids.get(term_key)
+        if term_id is None:
+            term_id = self._external_term_id(*term_key)
+            term_ids[term_key] = term_id
+        cursor = self.conn.execute(
             """
             INSERT OR IGNORE INTO enrichment_assertions (
                 entity_id,
@@ -570,20 +595,23 @@ class SemanticDatabase:
                 term_id,
             ),
         )
-        assertion_id = self.conn.execute(
-            """
-            SELECT id
-            FROM enrichment_assertions
-            WHERE entity_id = ?
-              AND predicate = ?
-              AND external_term_id = ?
-            """,
-            (
-                assertion.entity_id,
-                assertion.predicate,
-                term_id,
-            ),
-        ).fetchone()[0]
+        if cursor.rowcount == 1:
+            assertion_id = cursor.lastrowid
+        else:
+            assertion_id = self.conn.execute(
+                """
+                SELECT id
+                FROM enrichment_assertions
+                WHERE entity_id = ?
+                  AND predicate = ?
+                  AND external_term_id = ?
+                """,
+                (
+                    assertion.entity_id,
+                    assertion.predicate,
+                    term_id,
+                ),
+            ).fetchone()[0]
 
         # Re-running a provider refreshes only that provider's provenance.
         # Evidence supplied by other providers must remain available for

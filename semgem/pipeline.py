@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Iterable
@@ -49,12 +50,15 @@ class SemanticPipeline:
             *all_annotations,
             *infer_identity_inputs(database, all_annotations),
         ]
+        inputs_by_source = defaultdict(list)
+        for annotation in provider_inputs:
+            inputs_by_source[annotation.source].append(annotation)
 
         for provider in providers:
             relevant = [
                 annotation
-                for annotation in provider_inputs
-                if annotation.source in provider.annotation_sources
+                for source in sorted(provider.annotation_sources)
+                for annotation in inputs_by_source.get(source, ())
             ]
             run_id = database.start_enrichment_run(
                 provider=provider.name,

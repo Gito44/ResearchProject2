@@ -67,6 +67,20 @@ def test_initialisation_creates_the_agreed_tables(database):
     } <= names
 
 
+def test_initialisation_creates_enrichment_lookup_indexes(database):
+    expected_indexes = {
+        "idx_annotations_source_identifier_entity",
+        "idx_provider_relationship_evidence_relationship_provider",
+        "idx_entity_assertion_evidence_assertion_provider",
+        "idx_concept_evidence_concept",
+    }
+    rows = database.conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'index'"
+    ).fetchall()
+
+    assert expected_indexes <= {row[0] for row in rows}
+
+
 def test_evidence_rows_expose_compartment_transport_structure(database):
     model = cobra.Model("transport_model")
     model.compartments = {"c": "Cytosol", "m": "Mitochondria"}

@@ -77,6 +77,9 @@ CREATE TABLE IF NOT EXISTS annotations (
     UNIQUE (entity_id, source, identifier)
 );
 
+CREATE INDEX IF NOT EXISTS idx_annotations_source_identifier_entity
+ON annotations (source, identifier, entity_id);
+
 CREATE TABLE IF NOT EXISTS external_terms (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     source TEXT NOT NULL,
@@ -132,6 +135,9 @@ CREATE TABLE IF NOT EXISTS provider_relationship_evidence (
     FOREIGN KEY (run_id) REFERENCES enrichment_runs(id) ON DELETE SET NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_provider_relationship_evidence_relationship_provider
+ON provider_relationship_evidence (relationship_id, provider);
+
 CREATE TABLE IF NOT EXISTS enrichment_assertions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     entity_id INTEGER NOT NULL,
@@ -162,6 +168,9 @@ CREATE TABLE IF NOT EXISTS entity_assertion_evidence (
     FOREIGN KEY (source_annotation_id) REFERENCES annotations(id) ON DELETE SET NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_entity_assertion_evidence_assertion_provider
+ON entity_assertion_evidence (assertion_id, provider);
+
 CREATE TABLE IF NOT EXISTS semantic_concepts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     entity_id INTEGER NOT NULL,
@@ -191,5 +200,8 @@ CREATE TABLE IF NOT EXISTS concept_evidence (
         REFERENCES external_term_relationships(id) ON DELETE SET NULL,
     CHECK (weight >= 0.0 AND weight <= 1.0)
 );
+
+CREATE INDEX IF NOT EXISTS idx_concept_evidence_concept
+ON concept_evidence (concept_id);
 
 PRAGMA user_version = 6;

@@ -150,11 +150,22 @@ Every complete model import runs in one transaction. An error rolls back the mod
 
 Foreign keys use `ON DELETE CASCADE`, so deleting a model removes its entities, type-specific data, relationships, annotations, concepts, and evidence. SQLite foreign-key enforcement is explicitly enabled for every connection.
 
+## Lookup indexes
+
+Composite indexes support annotation lookup by `(source, identifier, entity_id)`
+and provider-scoped evidence replacement by `(assertion_id, provider)` and
+`(relationship_id, provider)`. An index on `concept_evidence(concept_id)` supports
+concept-evidence lookup and cascading deletion. These indexes avoid repeated
+full-table scans during cohort-scale enrichment and concept replacement.
+
+Within each provider transaction, external-term database IDs are cached in
+memory so repeated references do not require additional term lookup queries.
+
 ## Deferred database work
 
 The current schema intentionally postpones:
 
-- performance indexes based on measured query patterns;
+- additional performance indexes as new query patterns are measured;
 - UUIDs and public display identifiers;
 - model aliases and shared content storage;
 - canonical model fingerprints and version relationships;
